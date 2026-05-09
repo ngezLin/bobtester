@@ -1,7 +1,10 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import testRoutes from "./routes/testRoutes";
+import authRoutes from "./routes/authRoutes";
+import caseRoutes from "./routes/caseRoutes";
+import assetRoutes from "./routes/assetRoutes";
+import runRoutes from "./routes/runRoutes";
 import path from "path";
 
 dotenv.config();
@@ -22,7 +25,10 @@ app.get("/", (_, res) => {
   });
 });
 
-app.use("/api", testRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/cases", caseRoutes);
+app.use("/api/assets", assetRoutes);
+app.use("/api/runs", runRoutes);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

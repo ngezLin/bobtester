@@ -1,28 +1,54 @@
 CREATE DATABASE IF NOT EXISTS bobtester;
 USE bobtester;
 
-CREATE TABLE IF NOT EXISTS test_runs (
+-- Drop tables in reverse order of dependencies
+DROP TABLE IF EXISTS test_runs;
+DROP TABLE IF EXISTS test_assets;
+DROP TABLE IF EXISTS test_cases;
+DROP TABLE IF EXISTS users;
+
+-- Users table
+CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    target_url VARCHAR(255) NOT NULL,
-    status ENUM('passed', 'failed', 'running') DEFAULT 'running',
-    execution_time INT COMMENT 'Execution time in milliseconds',
-    error_message TEXT,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS screenshots (
+-- Test Cases table
+CREATE TABLE test_cases (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    test_run_id INT NOT NULL,
-    path VARCHAR(255) NOT NULL,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    target_url TEXT NOT NULL,
+    steps JSON NOT NULL, -- Format: [{action: 'goto'|'fill'|'click', selector?: string, value?: string}]
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (test_run_id) REFERENCES test_runs(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS logs (
+-- Test Assets table
+CREATE TABLE test_assets (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    test_run_id INT NOT NULL,
-    message TEXT NOT NULL,
-    level ENUM('info', 'warn', 'error') DEFAULT 'info',
+    case_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    data JSON NOT NULL, -- Format: { "fieldName": "value" }
+    is_negative BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (test_run_id) REFERENCES test_runs(id) ON DELETE CASCADE
+    FOREIGN KEY (case_id) REFERENCES test_cases(id) ON DELETE CASCADE
+);
+
+-- Test Runs table (Simplified with logs and screenshot path)
+CREATE TABLE test_runs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    case_id INT NOT NULL,
+    asset_id INT,
+    status ENUM('passed', 'failed', 'running') DEFAULT 'running',
+    execution_time INT COMMENT 'Execution time in milliseconds',
+    screenshot_path VARCHAR(255),
+    logs JSON, -- Store execution logs as JSON array
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (case_id) REFERENCES test_cases(id) ON DELETE CASCADE,
+    FOREIGN KEY (asset_id) REFERENCES test_assets(id) ON DELETE SET NULL
 );
