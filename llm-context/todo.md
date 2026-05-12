@@ -1,38 +1,31 @@
-# Project Roadmap & TODO
+# Project Roadmap & TODO: BobTester Security Edition
 
-This list tracks the implementation steps for remaking BobTester.
+This list tracks the transformation of BobTester into an AI-driven Vulnerability Prober.
 
-## Phase 1: Foundation (Current)
-- [x] **Database Schema**: Update to simplified version with users, cases, assets, and runs.
-- [x] **Auth Backend**: 
-    - [x] `POST /api/auth/register` (hashing password)
-    - [x] `POST /api/auth/login` (generating simple JWT)
-    - [x] Auth middleware for protected routes
-- [x] **Auth Frontend**:
-    - [x] Login page
-    - [x] Register page
-    - [x] Auth state management (localStorage token)
+## Phase 1: Foundation (Completed)
+- [x] **Database Schema**: Users, cases, assets, and runs.
+- [x] **Auth System**: Backend JWT + Frontend state.
+- [x] **Basic Recording**: Paste and save Playwright steps.
+- [x] **Manual Assets**: Parameterize flows with user data.
+- [x] **Dynamic Runner**: Core execution logic for happy-path flows.
 
-## Phase 2: Core Features
-- [x] **Case Management**:
-    - [x] `POST /api/cases`: Save parsed steps and target URL.
-    - [x] `GET /api/cases`: List user's cases.
-    - [x] UI for listing and viewing case steps.
-- [x] **Recording Logic**:
-    - [x] Update `/record` page to allow pasting and saving steps.
-    - [x] Ensure `playwright codegen` results can be easily pasted.
+## Phase 2: Vulnerability Mapping & Documentation (Current)
+- [ ] **Context Refresh**: Update all `llm-context` files for security focus.
+- [ ] **Vulnerability Definitions**: Map OWASP Top 10 to Playwright actions.
+- [ ] **Payload Schemas**: Define how Bob delivers security probes.
 
-## Phase 3: Assets (Manual Data Sets)
-- [x] **Asset Management**:
-    - [x] `POST /api/cases/:id/assets`: Save parameter data (e.g., username/password sets).
-    - [x] `GET /api/cases/:id/assets`: List data sets for a case.
-    - [x] UI to add/view manual assets (positive/normal cases).
+## Phase 3: Security Payload Generation (Bob AI)
+- [ ] **Payload Engine**: `POST /api/bob/probe` returns field-specific payloads (XSS, SQLi).
+- [ ] **Contextual Probing**: Bob analyzes field names (e.g., "email", "search") to pick the best attack vectors.
+- [ ] **Bulk Asset Creation**: Generate 10+ security variants for a single recorded case.
 
-## Phase 4: Execution & Reporting
-- [x] **Dynamic Runner**:
-    - [x] `PlaywrightService`: Function to execute steps JSON and replace `[vars]` with asset data.
-    - [x] Capture screenshots and logs during execution.
-- [x] **Results Dashboard**:
-    - [x] `POST /api/run`: Trigger execution.
-    - [x] `GET /api/runs`: History list.
-    - [x] Detailed run view with status, timing, and screenshot.
+## Phase 4: Active Detection (Runner Enhancements)
+- [ ] **XSS Sniffer**: Listen for `alert()`, `confirm()`, or specific console tokens.
+- [ ] **SQLi Hunter**: Scan response bodies for DB error patterns (MySQL/PostgreSQL).
+- [ ] **Time-Based Detection**: Measure latency spikes for blind SQLi/OS Injection.
+- [ ] **Security Status**: Mark runs as `SAFE`, `WARNING`, or `VULNERABLE`.
+
+## Phase 5: Security Dashboard
+- [ ] **Vulnerability Report**: New UI to see *where* and *how* a script was broken.
+- [ ] **Screenshot Proof**: Highlight the exact moment a security probe succeeded.
+- [ ] **Remediation**: Use Bob to explain the fix for the detected vulnerability.

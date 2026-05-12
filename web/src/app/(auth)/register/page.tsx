@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { authService } from "@/api/auth";
 
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
@@ -24,21 +25,15 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:4000/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await response.json();
+      const data = await authService.register({ email, password });
 
       if (data.success) {
         router.push("/login?registered=true");
       } else {
         setError(data.message || "Registration failed");
       }
-    } catch (err) {
-      setError("Failed to connect to server");
+    } catch (err: any) {
+      setError(err.message || "Failed to connect to server");
     } finally {
       setLoading(false);
     }

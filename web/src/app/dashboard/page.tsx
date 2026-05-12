@@ -1,6 +1,6 @@
 "use client";
 
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/common/Sidebar";
 
 export default function DashboardPage() {
   return (

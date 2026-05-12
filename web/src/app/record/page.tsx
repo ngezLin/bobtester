@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/common/Sidebar";
 import { useRouter } from "next/navigation";
+import { caseService } from "@/api/cases";
 
 export default function RecordPage() {
   const [url, setUrl] = useState("https://example.com");
@@ -16,19 +17,11 @@ export default function RecordPage() {
   const handleStartRecording = async () => {
     setIsRecording(true);
     setMessage({ text: "Opening recorder on server...", type: "info" });
-    const token = localStorage.getItem("token");
     try {
-      await fetch("http://localhost:4000/api/cases/record", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ url }),
-      });
+      await caseService.recordCase(url);
       setMessage({ text: "Recorder opened. Perform your actions, then copy the code here.", type: "success" });
-    } catch (err) {
-      setMessage({ text: "Failed to start recorder", type: "error" });
+    } catch (err: any) {
+      setMessage({ text: err.message || "Failed to start recorder", type: "error" });
       setIsRecording(false);
     }
   };
@@ -97,30 +90,21 @@ export default function RecordPage() {
 
     setLoading(true);
     const steps = parseSteps(rawCode);
-    const token = localStorage.getItem("token");
 
     try {
-      const response = await fetch("http://localhost:4000/api/cases", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name: caseName,
-          target_url: url,
-          steps: steps,
-        }),
+      const data = await caseService.createCase({
+        name: caseName,
+        target_url: url,
+        steps: steps,
       });
 
-      const data = await response.json();
       if (data.success) {
         router.push("/cases");
       } else {
         setMessage({ text: data.message, type: "error" });
       }
-    } catch (err) {
-      setMessage({ text: "Failed to save test case", type: "error" });
+    } catch (err: any) {
+      setMessage({ text: err.message || "Failed to save test case", type: "error" });
     } finally {
       setLoading(false);
     }

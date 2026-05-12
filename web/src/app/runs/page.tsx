@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/common/Sidebar";
+import { runService } from "@/api/runs";
 
 export default function RunsPage() {
   const [runs, setRuns] = useState([]);
@@ -14,19 +15,15 @@ export default function RunsPage() {
   }, []);
 
   const fetchRuns = async () => {
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://localhost:4000/api/runs", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      const data = await runService.getRuns();
       if (data.success) {
         setRuns(data.runs);
       } else {
         setError(data.message);
       }
-    } catch (err) {
-      setError("Failed to fetch runs");
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch runs");
     } finally {
       setLoading(false);
     }
@@ -36,15 +33,11 @@ export default function RunsPage() {
     e.stopPropagation();
     if (!confirm("Delete this run from history?")) return;
     
-    const token = localStorage.getItem("token");
     try {
-      await fetch(`http://localhost:4000/api/runs/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await runService.deleteRun(id);
       fetchRuns();
-    } catch (err) {
-      alert("Failed to delete run");
+    } catch (err: any) {
+      alert(err.message || "Failed to delete run");
     }
   };
 

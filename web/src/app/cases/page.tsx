@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Sidebar from "@/components/Sidebar";
+import Sidebar from "@/components/common/Sidebar";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { caseService } from "@/api/cases";
+import { assetService } from "@/api/assets";
+import { runService } from "@/api/runs";
 
 export default function CasesPage() {
   const [cases, setCases] = useState([]);
@@ -19,19 +22,15 @@ export default function CasesPage() {
   }, []);
 
   const fetchCases = async () => {
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://localhost:4000/api/cases", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      const data = await caseService.getCases();
       if (data.success) {
         setCases(data.cases);
       } else {
         setError(data.message);
       }
-    } catch (err) {
-      setError("Failed to fetch cases");
+    } catch (err: any) {
+      setError(err.message || "Failed to fetch cases");
     } finally {
       setLoading(false);
     }
@@ -39,12 +38,8 @@ export default function CasesPage() {
 
   const handleOpenRunModal = async (testCase: any) => {
     setSelectedCase(testCase);
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`http://localhost:4000/api/assets/case/${testCase.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      const data = await assetService.getAssetsByCase(testCase.id);
       if (data.success) {
         setCaseAssets(data.assets);
       }
@@ -55,27 +50,15 @@ export default function CasesPage() {
 
   const handleExecuteRun = async (assetId: number | null) => {
     setRunning(true);
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch("http://localhost:4000/api/runs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          caseId: selectedCase.id,
-          assetId: assetId,
-        }),
-      });
-      const data = await response.json();
+      const data = await runService.executeRun(selectedCase.id, assetId);
       if (data.success) {
         router.push("/runs");
       } else {
         alert(data.message);
       }
-    } catch (err) {
-      alert("Failed to start test execution");
+    } catch (err: any) {
+      alert(err.message || "Failed to start test execution");
     } finally {
       setRunning(false);
       setSelectedCase(null);
@@ -84,18 +67,13 @@ export default function CasesPage() {
 
   const handleDeleteCase = async (id: number) => {
     if (!confirm("Are you sure you want to delete this test case?")) return;
-    const token = localStorage.getItem("token");
     try {
-      const response = await fetch(`http://localhost:4000/api/cases/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
+      const data = await caseService.deleteCase(id);
       if (data.success) {
         fetchCases();
       }
-    } catch (err) {
-      alert("Failed to delete case");
+    } catch (err: any) {
+      alert(err.message || "Failed to delete case");
     }
   };
 
@@ -166,10 +144,10 @@ export default function CasesPage() {
                   
                   <div className="flex gap-2">
                     <Link 
-                      href={`/cases/${testCase.id}/assets`}
+                      href={`/cases/${testCase.id}/config`}
                       className="flex-1 bg-gray-800 hover:bg-gray-700 text-sm font-bold py-2 rounded-lg transition-all text-center"
                     >
-                      Assets
+                      Config
                     </Link>
                     <button 
                       onClick={() => handleOpenRunModal(testCase)}
