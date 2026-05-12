@@ -1,6 +1,7 @@
 import { chromium, Browser, Page } from "playwright";
 import path from "path";
 import fs from "fs";
+import { SecurityChecker, Vulnerability } from "./securityChecker";
 
 export class PlaywrightService {
   static async launchBrowser(): Promise<Browser> {
@@ -25,24 +26,78 @@ export class PlaywrightService {
     testRunId: number,
     steps: any[],
     assetData: any = {}
-  ): Promise<{ success: boolean; screenshot?: string; logs: any[] }> {
+  ): Promise<{ success: boolean; screenshot?: string; logs: any[]; vulnerabilities: Vulnerability[] }> {
     const browser = await this.launchBrowser();
     const context = await browser.newContext();
     const page = await context.newPage();
+    const security = new SecurityChecker();
     const logs: any[] = [];
     let screenshotPath: string | undefined;
     let success = true;
+    let currentStepIndex = 0;
 
     const addLog = (message: string, level: string = "info") => {
       logs.push({ message, level, timestamp: new Date().toISOString() });
       console.log(`[Run ${testRunId}] [${level.toUpperCase()}] ${message}`);
     };
 
+    // --- Security Listeners ---
+    
+    // 1. XSS Sniffer (Dialogs)
+    page.on("dialog", async dialog => {
+      const message = dialog.message();
+      addLog(`Security Alert: Unexpected dialog detected! Content: "${message}"`, "warn");
+      security.addVulnerability({
+        type: "Cross-Site Scripting (XSS)",
+        severity: "HIGH",
+        evidence: `Triggered dialog with content: "${message}"`,
+        step_index: currentStepIndex,
+      });
+      await dialog.dismiss();
+    });
+
+    // 2. XSS Sniffer (Console)
+    page.on("console", msg => {
+      const text = msg.text();
+      // Look for common XSS probe patterns or "BOB_XSS" token
+      if (text.includes("XSS") || text.includes("BOB_") || msg.type() === "error") {
+        if (text.includes("BOB_")) {
+           security.addVulnerability({
+            type: "Cross-Site Scripting (XSS)",
+            severity: "HIGH",
+            evidence: `Found XSS probe token in console: "${text}"`,
+            step_index: currentStepIndex,
+          });
+        }
+      }
+    });
+
+    // 3. Response Scanner (SQLi & Headers)
+    page.on("response", async response => {
+      try {
+        const url = response.url();
+        const status = response.status();
+        const headers = response.headers();
+        
+        // Skip large files or non-text responses for body scanning
+        const contentType = headers["content-type"] || "";
+        let body = "";
+        if (contentType.includes("text") || contentType.includes("json")) {
+          body = await response.text();
+        }
+
+        security.scanResponse(url, status, headers, body, currentStepIndex);
+      } catch (e) {
+        // Response might be closed or empty
+      }
+    });
+
     try {
-      addLog("Starting dynamic test execution");
+      addLog("Starting dynamic test execution with Security Probing enabled");
 
       for (const step of steps) {
         const { action, selector, value } = step;
+        const stepStartTime = Date.now();
         
         // Parameter substitution: replace [varName] with assetData.varName
         let finalValue = value;
@@ -54,23 +109,38 @@ export class PlaywrightService {
           }
         }
 
-        switch (action) {
-          case "goto":
-            addLog(`Navigating to ${finalValue}`);
-            await page.goto(finalValue, { waitUntil: "networkidle" });
-            break;
-          case "fill":
-            addLog(`Filling ${selector} with ${finalValue ? "****" : "empty value"}`);
-            // Use locator for better stability (handles getBy... or raw selectors)
-            await page.locator(selector).fill(finalValue || "");
-            break;
-          case "click":
-            addLog(`Clicking ${selector}`);
-            await page.locator(selector).click();
-            break;
-          default:
-            addLog(`Unknown action: ${action}`, "warn");
+        try {
+          switch (action) {
+            case "goto":
+              addLog(`Navigating to ${finalValue}`);
+              await page.goto(finalValue, { waitUntil: "networkidle" });
+              break;
+            case "fill":
+              addLog(`Filling ${selector} with security payload or value`);
+              await page.locator(selector).fill(finalValue || "");
+              break;
+            case "click":
+              addLog(`Clicking ${selector}`);
+              await page.locator(selector).click();
+              // Wait for network to settle after click to measure potential DB delay
+              await page.waitForLoadState("networkidle").catch(() => {});
+              break;
+            default:
+              addLog(`Unknown action: ${action}`, "warn");
+          }
+
+          const stepDuration = Date.now() - stepStartTime;
+          // Analyze if this specific step (with its payload) caused a vulnerability
+          if (finalValue) {
+            security.analyzePayloadImpact(action, finalValue, stepDuration, true, currentStepIndex);
+          }
+
+        } catch (stepError: any) {
+           addLog(`Step ${currentStepIndex + 1} failed: ${stepError.message}`, "warn");
+           throw stepError; // Re-throw to be caught by the main try-catch
         }
+
+        currentStepIndex++;
       }
 
       addLog("Test execution completed successfully");
@@ -83,6 +153,11 @@ export class PlaywrightService {
       await browser.close();
     }
 
-    return { success, screenshot: screenshotPath, logs };
+    return { 
+      success, 
+      screenshot: screenshotPath, 
+      logs, 
+      vulnerabilities: security.getVulnerabilities() 
+    };
   }
 }

@@ -2,6 +2,7 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import pool from "../db";
 import { PlaywrightService } from "../services/playwrightService";
+import { SecurityChecker } from "../services/securityChecker";
 
 export class RunController {
   static async executeRun(req: AuthRequest, res: Response) {
@@ -47,21 +48,28 @@ export class RunController {
 
       // 5. Execute Dynamically
       const startTime = Date.now();
-      const { success, screenshot, logs } = await PlaywrightService.executeDynamicTest(
+      const { success, screenshot, logs, vulnerabilities } = await PlaywrightService.executeDynamicTest(
         testRunId,
         testCase.steps,
         assetData
       );
       const executionTime = Date.now() - startTime;
 
-      // 6. Update Test Run record
+      // 6. Calculate Security Status
+      const security = new SecurityChecker();
+      // Add existing vulnerabilities back to instance to use status logic
+      vulnerabilities.forEach(v => security.addVulnerability(v));
+      const finalStatus = security.determineStatus(success);
+
+      // 7. Update Test Run record
       await pool.execute(
-        "UPDATE test_runs SET status = ?, execution_time = ?, screenshot_path = ?, logs = ? WHERE id = ?",
+        "UPDATE test_runs SET status = ?, execution_time = ?, screenshot_path = ?, logs = ?, vulnerabilities = ? WHERE id = ?",
         [
-          success ? "passed" : "failed",
+          finalStatus,
           executionTime,
           screenshot || null,
           JSON.stringify(logs),
+          JSON.stringify(vulnerabilities),
           testRunId
         ]
       );

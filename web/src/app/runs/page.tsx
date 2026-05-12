@@ -93,7 +93,9 @@ export default function RunsPage() {
                       <td className="px-6 py-4 text-gray-400 text-sm">{run.asset_name || "None"}</td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                          run.status === "passed" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
+                          run.status === "passed" || run.status === "safe" ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" :
+                          run.status === "vulnerable" ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" :
+                          run.status === "warning" ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" :
                           run.status === "failed" ? "bg-rose-500/10 text-rose-500 border border-rose-500/20" :
                           "bg-blue-500/10 text-blue-500 border border-blue-500/20 animate-pulse"
                         }`}>
@@ -128,11 +130,19 @@ export default function RunsPage() {
           {/* Detailed Modal */}
           {selectedRun && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-auto">
-              <div className="bg-gray-900 border border-gray-800 w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+              <div className="bg-gray-900 border border-gray-800 w-full max-w-6xl rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
                 <div className="p-8 border-b border-gray-800 flex justify-between items-center bg-gray-800/30">
-                  <div>
-                    <h2 className="text-2xl font-bold">Run Details: #{selectedRun.id}</h2>
-                    <p className="text-gray-400 mt-1">{selectedRun.case_name} • {selectedRun.status}</p>
+                  <div className="flex items-center gap-4">
+                    <div className={`w-3 h-3 rounded-full ${
+                      selectedRun.status === "safe" || selectedRun.status === "passed" ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" :
+                      selectedRun.status === "vulnerable" ? "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]" :
+                      selectedRun.status === "warning" ? "bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]" :
+                      "bg-gray-500"
+                    }`}></div>
+                    <div>
+                      <h2 className="text-2xl font-bold uppercase tracking-tight">Run Details: #{selectedRun.id}</h2>
+                      <p className="text-gray-400 mt-1 font-mono text-xs">{selectedRun.case_name} • {selectedRun.status.toUpperCase()} • {selectedRun.execution_time}ms</p>
+                    </div>
                   </div>
                   <button
                     onClick={() => setSelectedRun(null)}
@@ -142,7 +152,48 @@ export default function RunsPage() {
                   </button>
                 </div>
                 
-                <div className="p-8 grid md:grid-cols-2 gap-8 max-h-[70vh] overflow-auto">
+                <div className="p-8 grid lg:grid-cols-3 gap-8 max-h-[75vh] overflow-auto">
+                  {/* Security Report Section */}
+                  <div className="space-y-6 lg:border-r lg:border-gray-800 lg:pr-8">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs uppercase font-black text-gray-500 tracking-widest">Security Report</h3>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                         selectedRun.status === "safe" || selectedRun.status === "passed" ? "text-emerald-500 border-emerald-500/20" :
+                         selectedRun.status === "vulnerable" ? "text-rose-500 border-rose-500/20" :
+                         "text-amber-500 border-amber-500/20"
+                      }`}>
+                        {selectedRun.vulnerabilities ? (typeof selectedRun.vulnerabilities === "string" ? JSON.parse(selectedRun.vulnerabilities).length : selectedRun.vulnerabilities.length) : 0} Issues
+                      </span>
+                    </div>
+
+                    <div className="space-y-4">
+                      {selectedRun.vulnerabilities && (typeof selectedRun.vulnerabilities === "string" ? JSON.parse(selectedRun.vulnerabilities) : selectedRun.vulnerabilities).length > 0 ? (
+                        (typeof selectedRun.vulnerabilities === "string" ? JSON.parse(selectedRun.vulnerabilities) : selectedRun.vulnerabilities).map((v: any, i: number) => (
+                          <div key={i} className="bg-gray-950 p-4 rounded-2xl border border-gray-800 group hover:border-gray-700 transition-all">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-[10px] font-black uppercase text-gray-500">#{i+1} {v.type}</span>
+                              <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${
+                                v.severity === "HIGH" || v.severity === "CRITICAL" ? "bg-rose-500/20 text-rose-500" :
+                                v.severity === "MEDIUM" ? "bg-amber-500/20 text-amber-500" :
+                                "bg-blue-500/20 text-blue-500"
+                              }`}>{v.severity}</span>
+                            </div>
+                            <p className="text-sm text-gray-300 leading-relaxed">{v.evidence}</p>
+                            {v.step_index !== undefined && (
+                              <div className="mt-2 text-[10px] text-gray-600 font-mono">Detected at Step {v.step_index + 1}</div>
+                            )}
+                          </div>
+                        ))
+                      ) : (
+                        <div className="bg-emerald-500/5 border border-emerald-500/10 p-8 rounded-3xl text-center">
+                          <div className="text-2xl mb-2">🛡️</div>
+                          <p className="text-emerald-500 text-sm font-bold">No vulnerabilities detected</p>
+                          <p className="text-emerald-500/50 text-[10px] mt-1 uppercase tracking-widest">Environment looks safe</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-6">
                     <h3 className="text-xs uppercase font-black text-gray-500 tracking-widest">Execution Logs</h3>
                     <div className="bg-gray-950 p-6 rounded-2xl font-mono text-xs space-y-3 max-h-96 overflow-auto border border-gray-800">

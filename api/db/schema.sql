@@ -43,10 +43,11 @@ CREATE TABLE test_runs (
     user_id INT NOT NULL,
     case_id INT NOT NULL,
     asset_id INT,
-    status ENUM('passed', 'failed', 'running') DEFAULT 'running',
+    status ENUM('passed', 'failed', 'running', 'vulnerable', 'warning', 'safe') DEFAULT 'running',
     execution_time INT COMMENT 'Execution time in milliseconds',
     screenshot_path VARCHAR(255),
     logs JSON, -- Store execution logs as JSON array
+    vulnerabilities JSON, -- Store security findings
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (case_id) REFERENCES test_cases(id) ON DELETE CASCADE,
