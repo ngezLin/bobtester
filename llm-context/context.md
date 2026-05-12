@@ -1,62 +1,32 @@
-PROJECT: BobTester
+PROJECT: BobTester (Security Edition)
 HACKATHON: IBM Bob Hackathon (May 15-17, 2026)
 
-WHAT WE'RE BUILDING:
-A web app that lets users record browser flows, parameterize test data,
-and use IBM Bob AI to auto-generate negative/vulnerability test cases.
+MISSION:
+Transforming standard browser flows into active security probes. BobTester uses IBM Bob AI to analyze recorded user journeys and dynamically inject security payloads (XSS, SQLi, etc.) to detect vulnerabilities automatically.
 
 CURRENT STATE:
-- Backend: Express + MySQL + Playwright (basic runner exists)
-- Frontend: Next.js (single page, needs expansion)
-- Has: screenshot capture, logging, basic DB
-- Missing: auth, dynamic runner, case/asset storage, Bob integration
+- Backend: Express + MySQL + Playwright (Stable runner)
+- Frontend: Next.js (Dashboard + Case management)
+- Status: Happy-path automation works; pivoting to Security Probing.
 
-TARGET DEMO FLOW:
-1. User logs in
-2. User goes to /record, enters URL, clicks "Start Recording"
-   → Playwright codegen opens on server
-3. User performs flow, copies generated steps, pastes into form
-   → Saves as "test_case" with steps JSON
-4. User goes to /cases, clicks case, clicks "Ask Bob"
-   → Bob analyzes steps, suggests negative assets
-   → Assets saved to DB
-5. User selects case + asset, clicks "Run"
-   → Dynamic Playwright runner executes steps with asset data
-   → Screenshot + pass/fail saved
-6. User views /runs to see results
+SECURITY FOCUS (OWASP TOP 10):
+1. A03:2021-Injection (SQLi, XSS, OS Command Injection)
+2. A01:2021-Broken Access Control (Session/Token manipulation)
+3. A07:2021-Identification and Authentication Failures
 
-TECH STACK:
-- Frontend: Next.js 16, React 19, Tailwind CSS v4
-- Backend: Express 5, TypeScript, MySQL2
-- Automation: Playwright
-- AI: IBM Bob API
+CORE WORKFLOW:
+1. Record: Capture a standard "Happy Path" (e.g., Search, Login, Profile Update).
+2. Analyze: Bob AI identifies input fields and suggests attack vectors.
+3. Probe: Playwright Runner re-executes the flow using security payloads.
+4. Detect: Active listeners (dialogs, console, response body) confirm vulnerabilities.
+5. Report: Visual dashboard showing where security failed.
 
-DB TABLES (Simplified):
-- users(id, email, password_hash)
-- test_cases(id, user_id, name, target_url, steps JSON) 
-  -- steps: [{action: 'goto'|'fill'|'click', selector?: string, value?: string}]
-- test_assets(id, case_id, name, data JSON, is_negative)
-  -- data: { "fieldName": "value" }
-- test_runs(id, user_id, case_id, asset_id, status, execution_time, screenshot_path, logs JSON, created_at)
+VARIABLE SYNTAX:
+Steps JSON uses `[variable_name]` which the runner replaces with data from the Asset.
+Example: `{ "action": "fill", "selector": "#q", "value": "[search_query]" }`
 
-API ENDPOINTS NEEDED:
-POST /api/auth/register
-POST /api/auth/login
-POST /api/record (existing)
-POST /api/cases
-GET /api/cases
-POST /api/cases/:id/assets
-POST /api/run
-POST /api/bob
-GET /api/runs
-
-FRONTEND PAGES NEEDED:
-/ - Login/Register
-/record - Start recording, save case
-/cases - List cases, view steps, add assets, ask Bob
-/runs - Execute and view results
-
-BOB INTEGRATION:
-POST /api/bob receives {steps: [...]}
-Sends prompt to Bob API asking for negative test assets
-Returns {assets: [...]} which we save to test_assets
+RELEVANT FILES:
+- `endpoint.md`: Detailed API documentation.
+- `flow.md`: Visual architecture and data flow.
+- `vulnerability_mapping.md`: How we detect specific OWASP flaws.
+- `schemas.md`: JSON structures for cases, steps, and payloads.

@@ -1,22 +1,29 @@
-##backend
+# API Endpoints (Security Focused)
 
-| Method | Endpoint                | What It Does                                      |
-| ------ | ----------------------- | ------------------------------------------------- |
-| `POST` | `/api/auth/register`    | Create account                                    |
-| `POST` | `/api/auth/login`       | Login, return simple token                        |
-| `POST` | `/api/record`           | Start codegen (your existing code)                |
-| `POST` | `/api/cases`            | Save parsed steps from recording                  |
-| `GET`  | `/api/cases`            | List cases for logged-in user                     |
-| `POST` | `/api/cases/:id/assets` | Add asset (test data)                             |
-| `POST` | `/api/run`              | `{caseId, assetId}` → execute dynamically         |
-| `POST` | `/api/bob`              | `{steps}` → Bob returns suggested negative assets |
+## Authentication
+- **POST** `/api/auth/register`: `{ email, password }`
+- **POST** `/api/auth/login`: `{ email, password }` → Returns token.
 
+## Test Cases & Recording
+- **POST** `/api/record`: Launches server-side `playwright codegen`.
+- **POST** `/api/cases`: Saves a recorded flow. `{ name, targetUrl, steps }`
+- **GET**  `/api/cases`: Returns all cases for the user.
 
-##frontend
+## Assets & Payloads
+- **POST** `/api/cases/:id/assets`: Manual data set entry.
+- **GET**  `/api/cases/:id/assets`: List all data sets for a case.
+- **POST** `/api/bob/probe`: Send steps to Bob. Bob analyzes field names and returns suggested security payloads.
+    - **Request**: `{ steps: [...] }`
+    - **Response**: `{ assets: [{ name: "XSS Probe", data: { field: "<script>..." }, vulnerability: "XSS" }] }`
 
-| Page               | Route          | Purpose                                                                                                  |
-| ------------------ | -------------- | -------------------------------------------------------------------------------------------------------- |
-| **Login/Register** | `/` or `/auth` | Simple form, store token in localStorage                                                                 |
-| **Record**         | `/record`      | Input URL → click "Start Recording" → codegen opens → user copies steps JSON → paste back → save as case |
-| **Cases + Assets** | `/cases`       | List cases. Click case → see steps → add assets (positive/negative data sets)                            |
-| **Run + Report**   | `/runs`        | Select case + asset → run → see screenshot + pass/fail                                                   |
+## Execution & Reporting
+- **POST** `/api/run`: Trigger a run. `{ caseId, assetId }`
+- **GET**  `/api/runs`: List run history.
+- **GET**  `/api/runs/:id`: View detailed result.
+    - **Returns**: `{ status: "VULNERABLE" | "SAFE", logs, screenshotPath, vulnerabilities: [{ type: "XSS", evidence: "Dialog popped" }] }`
+
+# Frontend Routes
+- `/`: Login/Register
+- `/record`: Record new cases.
+- `/cases`: Management dashboard.
+- `/runs`: Security report history.
