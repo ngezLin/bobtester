@@ -11,9 +11,10 @@ interface StepListProps {
   savingSteps: boolean;
   onSave: () => void;
   onUpdateStep: (index: number, field: string, value: string) => void;
+  onDeleteStep: (index: number) => void;
 }
 
-export default function StepList({ steps, savingSteps, onSave, onUpdateStep }: StepListProps) {
+export default function StepList({ steps, savingSteps, onSave, onUpdateStep, onDeleteStep }: StepListProps) {
   const parameterizeValue = (index: number) => {
     const varName = prompt("Enter variable name (e.g., username):", "");
     if (varName) {
@@ -41,17 +42,26 @@ export default function StepList({ steps, savingSteps, onSave, onUpdateStep }: S
 
       <div className="space-y-4">
         {steps.map((step, idx) => (
-          <div key={idx} className="bg-gray-800/50 border border-gray-800 rounded-2xl p-4 space-y-3">
+          <div key={idx} className="bg-gray-800/50 border border-gray-800 rounded-2xl p-4 space-y-3 relative group">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-black text-gray-500 uppercase">Step {idx + 1}: {step.action}</span>
-              {step.action === "fill" && (
-                <button 
-                  onClick={() => parameterizeValue(idx)}
-                  className="text-[10px] text-blue-500 hover:underline font-bold"
+              <div className="flex items-center gap-4">
+                {step.action === "fill" && (
+                  <button 
+                    onClick={() => parameterizeValue(idx)}
+                    className="text-[10px] text-blue-500 hover:underline font-bold"
+                  >
+                    ⚡ Parameterize
+                  </button>
+                )}
+                <button
+                  onClick={() => onDeleteStep(idx)}
+                  className="text-gray-500 hover:text-red-500 transition-colors"
+                  title="Delete Step"
                 >
-                  ⚡ Parameterize
+                  🗑️
                 </button>
-              )}
+              </div>
             </div>
             
             <div className="grid grid-cols-2 gap-4">

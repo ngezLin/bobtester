@@ -73,6 +73,13 @@ export default function ConfigPage() {
     setSteps(newSteps);
   };
 
+  const handleDeleteStep = (index: number) => {
+    if (!confirm(`Delete Step ${index + 1}?`)) return;
+    const newSteps = [...steps];
+    newSteps.splice(index, 1);
+    setSteps(newSteps);
+  };
+
   const handleSaveSteps = async () => {
     setSavingSteps(true);
     try {
@@ -133,6 +140,7 @@ export default function ConfigPage() {
                 savingSteps={savingSteps} 
                 onSave={handleSaveSteps} 
                 onUpdateStep={handleUpdateStep} 
+                onDeleteStep={handleDeleteStep}
               />
             </section>
 
