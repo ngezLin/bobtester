@@ -11,10 +11,13 @@ export default function RunsPage() {
   const [selectedRun, setSelectedRun] = useState<any>(null);
 
   useEffect(() => {
-    fetchRuns();
+    fetchRuns(true);
+    const interval = setInterval(() => fetchRuns(false), 5000); // Poll every 5 seconds
+    return () => clearInterval(interval);
   }, []);
 
-  const fetchRuns = async () => {
+  const fetchRuns = async (showLoading = false) => {
+    if (showLoading) setLoading(true);
     try {
       const data = await runService.getRuns();
       if (data.success) {
@@ -25,7 +28,7 @@ export default function RunsPage() {
     } catch (err: any) {
       setError(err.message || "Failed to fetch runs");
     } finally {
-      setLoading(false);
+      if (showLoading) setLoading(false);
     }
   };
 
@@ -53,7 +56,7 @@ export default function RunsPage() {
               <p className="text-gray-400 mt-2">Track the performance and results of your automation flows</p>
             </div>
             <button
-              onClick={fetchRuns}
+              onClick={() => fetchRuns()}
               className="p-3 bg-gray-900 border border-gray-800 rounded-xl hover:bg-gray-800 transition-all"
               title="Refresh"
             >
