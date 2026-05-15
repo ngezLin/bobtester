@@ -5,9 +5,18 @@ import { SecurityChecker, Vulnerability } from "./securityChecker";
 
 export class PlaywrightService {
   static async launchBrowser(): Promise<Browser> {
-    return await chromium.launch({
-      headless: true,
-    });
+    const apiKey = process.env.BROWSERLESS_API_KEY;
+
+    if (!apiKey) {
+      throw new Error("BROWSERLESS_API_KEY is not set in environment variables.");
+    }
+
+    
+    const wsEndpoint = `wss://production-sfo.browserless.io?token=${apiKey}`;
+    console.log("🌐 [Browserless] Connecting to remote cloud browser...");
+    const browser = await chromium.connectOverCDP(wsEndpoint);
+    console.log("✅ [Browserless] Connected! Browser is running on Browserless.io servers.");
+    return browser;
   }
 
   static async takeScreenshot(page: Page, testRunId: number, name: string): Promise<string> {
