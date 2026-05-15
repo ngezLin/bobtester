@@ -5,6 +5,7 @@ USE bobtester;
 DROP TABLE IF EXISTS test_runs;
 DROP TABLE IF EXISTS test_assets;
 DROP TABLE IF EXISTS test_cases;
+DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS users;
 
 -- Users table
@@ -15,15 +16,27 @@ CREATE TABLE users (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Projects table
+CREATE TABLE projects (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 -- Test Cases table
 CREATE TABLE test_cases (
     id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
+    project_id INT,
     name VARCHAR(255) NOT NULL,
     target_url TEXT NOT NULL,
     steps JSON NOT NULL, -- Format: [{action: 'goto'|'fill'|'click', selector?: string, value?: string}]
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
 -- Test Assets table

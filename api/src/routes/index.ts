@@ -4,6 +4,7 @@ import { CaseController } from "../controllers/caseController";
 import { AssetController } from "../controllers/assetController";
 import { RunController } from "../controllers/runController";
 import { AiRunController } from "../controllers/aiRunController";
+import { ProjectController } from "../controllers/projectController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -11,6 +12,14 @@ const router = Router();
 // --- AUTH ROUTES ---
 router.post("/auth/register", AuthController.register);
 router.post("/auth/login", AuthController.login);
+
+// --- PROJECT ROUTES (Protected) ---
+router.post("/projects", authMiddleware, ProjectController.createProject);
+router.get("/projects", authMiddleware, ProjectController.getProjects);
+router.get("/projects/:id", authMiddleware, ProjectController.getProjectById);
+router.put("/projects/:id", authMiddleware, ProjectController.updateProject);
+router.delete("/projects/:id", authMiddleware, ProjectController.deleteProject);
+router.post("/projects/:id/run", authMiddleware, ProjectController.runSuite);
 
 // --- CASE ROUTES (Protected) ---
 router.post("/cases", authMiddleware, CaseController.createCase);

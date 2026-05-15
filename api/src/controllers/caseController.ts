@@ -5,7 +5,7 @@ import { exec } from "child_process";
 
 export class CaseController {
   static async createCase(req: AuthRequest, res: Response) {
-    const { name, target_url, steps } = req.body;
+    const { name, target_url, steps, project_id } = req.body;
     const userId = req.user?.id;
 
     if (!name || !target_url || !steps) {
@@ -14,8 +14,8 @@ export class CaseController {
 
     try {
       const [result]: any = await pool.execute(
-        "INSERT INTO test_cases (user_id, name, target_url, steps) VALUES (?, ?, ?, ?)",
-        [userId as number, name, target_url, JSON.stringify(steps)]
+        "INSERT INTO test_cases (user_id, project_id, name, target_url, steps) VALUES (?, ?, ?, ?, ?)",
+        [userId as number, project_id || null, name, target_url, JSON.stringify(steps)]
       );
 
       res.status(201).json({

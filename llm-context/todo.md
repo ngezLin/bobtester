@@ -19,11 +19,17 @@ This list tracks the transformation of BobTester into an AI-driven Vulnerability
 - [ ] **Contextual Probing**: Bob analyzes field names (e.g., "email", "search") to pick the best attack vectors.
 - [ ] **Bulk Asset Creation**: Generate 10+ security variants for a single recorded case.
 
-## Phase 4: Active Detection (Runner Enhancements)
-- [ ] **XSS Sniffer**: Listen for `alert()`, `confirm()`, or specific console tokens.
-- [ ] **SQLi Hunter**: Scan response bodies for DB error patterns (MySQL/PostgreSQL).
+## Phase 4: Active Detection (Runner Enhancements) (Completed)
+- [x] **XSS Sniffer**: Listen for `alert()`, `confirm()`, or specific console tokens.
+- [x] **SQLi Hunter**: Scan response bodies for DB error patterns (MySQL/PostgreSQL).
+- [x] **Security Status**: Mark runs as `SAFE`, `WARNING`, or `VULNERABLE`.
 - [ ] **Time-Based Detection**: Measure latency spikes for blind SQLi/OS Injection.
-- [ ] **Security Status**: Mark runs as `SAFE`, `WARNING`, or `VULNERABLE`.
+
+## Phase 6: Bob AI "Prompt-to-Automation" (Completed)
+- [x] **Page Discovery**: Playwright scans target URL for interactive elements and ARIA roles.
+- [x] **Step Generation**: Llama3 generates Playwright `internal:role` locators based on the goal.
+- [x] **Assertions**: Add `verify` action support (URL match, Text OR matching) in Playwright service.
+- [x] **Two-Step Workflow**: Generate preview -> User edits -> Save & Run.
 
 ## Phase 5: Security Dashboard
 - [ ] **Vulnerability Report**: New UI to see *where* and *how* a script was broken.
