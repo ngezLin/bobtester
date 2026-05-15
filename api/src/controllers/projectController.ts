@@ -80,6 +80,59 @@ export class ProjectController {
     }
   }
 
+  static async updateProject(req: AuthRequest, res: Response) {
+    const { id } = req.params;
+    const { name, description } = req.body;
+    const userId = req.user?.id;
+
+    if (!name) {
+      return res.status(400).json({ success: false, message: "Project name is required" });
+    }
+
+    try {
+      const [result]: any = await pool.execute(
+        "UPDATE projects SET name = ?, description = ? WHERE id = ? AND user_id = ?",
+        [name, description || null, id, userId as number]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: "Project not found or unauthorized" });
+      }
+
+      res.json({
+        success: true,
+        message: "Project updated successfully",
+      });
+    } catch (error: any) {
+      console.error("Update project error:", error);
+      res.status(500).json({ success: false, message: "Server error during project update" });
+    }
+  }
+
+  static async deleteProject(req: AuthRequest, res: Response) {
+    const { id } = req.params;
+    const userId = req.user?.id;
+
+    try {
+      const [result]: any = await pool.execute(
+        "DELETE FROM projects WHERE id = ? AND user_id = ?",
+        [id, userId as number]
+      );
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: "Project not found or unauthorized" });
+      }
+
+      res.json({
+        success: true,
+        message: "Project and all associated test cases deleted successfully",
+      });
+    } catch (error: any) {
+      console.error("Delete project error:", error);
+      res.status(500).json({ success: false, message: "Server error during project deletion" });
+    }
+  }
+
   static async runSuite(req: AuthRequest, res: Response) {
     const { id } = req.params;
     const userId = req.user?.id;
