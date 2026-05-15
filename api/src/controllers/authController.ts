@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import pool from "../db";
+import supabase from "../db";
 
 const JWT_SECRET = process.env.JWT_SECRET || "fallback_secret";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
@@ -15,21 +15,32 @@ export class AuthController {
     }
 
     try {
-      const [existingUsers]: any = await pool.execute("SELECT id FROM users WHERE email = ?", [email]);
-      if (existingUsers.length > 0) {
+      const { data: existingUsers, error: checkError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email);
+      if (checkError) {
+        console.error("Check user error:", checkError);
+        return res.status(500).json({ success: false, message: "Server error" });
+      }
+      if (existingUsers && existingUsers.length > 0) {
         return res.status(400).json({ success: false, message: "Email already registered" });
       }
 
       const passwordHash = await bcrypt.hash(password, 10);
-      const [result]: any = await pool.execute(
-        "INSERT INTO users (email, password_hash) VALUES (?, ?)",
-        [email, passwordHash]
-      );
+      const { data: result, error: insertError } = await supabase
+        .from('users')
+        .insert({ email, password_hash: passwordHash })
+        .select('id');
+      if (insertError) {
+        console.error("Insert user error:", insertError);
+        return res.status(500).json({ success: false, message: "Server error during registration" });
+      }
 
       res.status(201).json({
         success: true,
         message: "User registered successfully",
-        userId: result.insertId,
+        userId: result[0].id,
       });
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -45,8 +56,15 @@ export class AuthController {
     }
 
     try {
-      const [users]: any = await pool.execute("SELECT * FROM users WHERE email = ?", [email]);
-      const user = users[0];
+      const { data: users, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email);
+      if (error) {
+        console.error("Login query error:", error);
+        return res.status(500).json({ success: false, message: "Server error" });
+      }
+      const user = users ? users[0] : null;
 
       if (!user) {
         return res.status(401).json({ success: false, message: "Invalid credentials" });
