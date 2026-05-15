@@ -21,7 +21,7 @@ export class AuthController {
         .eq('email', email);
       if (checkError) {
         console.error("Check user error:", checkError);
-        return res.status(500).json({ success: false, message: "Server error" });
+        return res.status(500).json({ success: false, message: "Server error", details: checkError });
       }
       if (existingUsers && existingUsers.length > 0) {
         return res.status(400).json({ success: false, message: "Email already registered" });
@@ -34,7 +34,7 @@ export class AuthController {
         .select('id');
       if (insertError) {
         console.error("Insert user error:", insertError);
-        return res.status(500).json({ success: false, message: "Server error during registration" });
+        return res.status(500).json({ success: false, message: "Server error during registration", details: insertError });
       }
 
       res.status(201).json({
@@ -44,7 +44,7 @@ export class AuthController {
       });
     } catch (error: any) {
       console.error("Registration error:", error);
-      res.status(500).json({ success: false, message: "Server error during registration" });
+      res.status(500).json({ success: false, message: "Server error during registration", details: error.message || error });
     }
   }
 

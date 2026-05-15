@@ -1,5 +1,4 @@
-CREATE DATABASE IF NOT EXISTS bobtester;
-USE bobtester;
+-- QA Automation Platform Schema (Supabase/PostgreSQL)
 
 -- Drop tables in reverse order of dependencies
 DROP TABLE IF EXISTS test_runs;
@@ -18,13 +17,6 @@ CREATE TYPE test_run_status AS ENUM (
 );
 
 -- Users table
--- CREATE TABLE users (
---     id INT AUTO_INCREMENT PRIMARY KEY,
---     email VARCHAR(255) NOT NULL UNIQUE,
---     password_hash VARCHAR(255) NOT NULL,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- );
--- Users table
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) NOT NULL UNIQUE,
@@ -41,17 +33,6 @@ CREATE TABLE projects (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- -- Test Cases table
--- CREATE TABLE test_cases (
---     id INT AUTO_INCREMENT PRIMARY KEY,
---     user_id INT NOT NULL,
---     name VARCHAR(255) NOT NULL,
---     target_url TEXT NOT NULL,
---     steps JSON NOT NULL, -- Format: [{action: 'goto'|'fill'|'click', selector?: string, value?: string}]
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
--- );
->>>>>>> supabaseTry
 -- Test Cases table
 CREATE TABLE test_cases (
     id SERIAL PRIMARY KEY,
@@ -65,16 +46,6 @@ CREATE TABLE test_cases (
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
 
--- -- Test Assets table
--- CREATE TABLE test_assets (
---     id INT AUTO_INCREMENT PRIMARY KEY,
---     case_id INT NOT NULL,
---     name VARCHAR(255) NOT NULL,
---     data JSON NOT NULL, -- Format: { "fieldName": "value" }
---     is_negative BOOLEAN DEFAULT FALSE,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     FOREIGN KEY (case_id) REFERENCES test_cases(id) ON DELETE CASCADE
--- );
 -- Test Assets table
 CREATE TABLE test_assets (
     id SERIAL PRIMARY KEY,
@@ -90,22 +61,6 @@ CREATE TABLE test_assets (
         ON DELETE CASCADE
 );
 
--- Test Runs table (Simplified with logs and screenshot path)
--- CREATE TABLE test_runs (
---     id INT AUTO_INCREMENT PRIMARY KEY,
---     user_id INT NOT NULL,
---     case_id INT NOT NULL,
---     asset_id INT,
---     status ENUM('passed', 'failed', 'running', 'vulnerable', 'warning', 'safe') DEFAULT 'running',
---     execution_time INT COMMENT 'Execution time in milliseconds',
---     screenshot_path VARCHAR(255),
---     logs JSON, -- Store execution logs as JSON array
---     vulnerabilities JSON, -- Store security findings
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
---     FOREIGN KEY (case_id) REFERENCES test_cases(id) ON DELETE CASCADE,
---     FOREIGN KEY (asset_id) REFERENCES test_assets(id) ON DELETE SET NULL
--- );
 -- Test Runs table
 CREATE TABLE test_runs (
     id SERIAL PRIMARY KEY,

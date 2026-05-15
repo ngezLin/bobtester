@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import pool from "../db";
+import supabase from "../db";
 import { PlaywrightService } from "../services/playwrightService";
 import { SecurityChecker } from "../services/securityChecker";
 
@@ -14,15 +14,22 @@ export class ProjectController {
     }
 
     try {
-      const [result]: any = await pool.execute(
-        "INSERT INTO projects (user_id, name, description) VALUES (?, ?, ?)",
-        [userId as number, name, description || null]
-      );
+      const { data: result, error } = await supabase
+        .from("projects")
+        .insert({
+          user_id: userId,
+          name,
+          description: description || null
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
 
       res.status(201).json({
         success: true,
         message: "Project created successfully",
-        projectId: result.insertId,
+        projectId: (result as any).id,
       });
     } catch (error: any) {
       console.error("Create project error:", error);
@@ -34,10 +41,13 @@ export class ProjectController {
     const userId = req.user?.id;
 
     try {
-      const [rows]: any = await pool.execute(
-        "SELECT * FROM projects WHERE user_id = ? ORDER BY created_at DESC",
-        [userId as number]
-      );
+      const { data: rows, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
 
       res.json({
         success: true,
@@ -54,20 +64,26 @@ export class ProjectController {
     const userId = req.user?.id;
 
     try {
-      const [projects]: any = await pool.execute(
-        "SELECT * FROM projects WHERE id = ? AND user_id = ?",
-        [id, userId as number]
-      );
+      const { data: projects, error: projectError } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId);
+
+      if (projectError) throw projectError;
 
       if (projects.length === 0) {
         return res.status(404).json({ success: false, message: "Project not found" });
       }
 
       // Fetch cases for this project
-      const [cases]: any = await pool.execute(
-        "SELECT id, name, target_url, created_at FROM test_cases WHERE project_id = ? ORDER BY created_at ASC",
-        [id]
-      );
+      const { data: cases, error: casesError } = await supabase
+        .from("test_cases")
+        .select("id, name, target_url, created_at")
+        .eq("project_id", id)
+        .order("created_at", { ascending: true });
+
+      if (casesError) throw casesError;
 
       res.json({
         success: true,
@@ -90,12 +106,16 @@ export class ProjectController {
     }
 
     try {
-      const [result]: any = await pool.execute(
-        "UPDATE projects SET name = ?, description = ? WHERE id = ? AND user_id = ?",
-        [name, description || null, id, userId as number]
-      );
+      const { error } = await supabase
+        .from("projects")
+        .update({
+          name,
+          description: description || null
+        })
+        .eq("id", id)
+        .eq("user_id", userId);
 
-      if (result.affectedRows === 0) {
+      if (error) {
         return res.status(404).json({ success: false, message: "Project not found or unauthorized" });
       }
 
@@ -114,12 +134,13 @@ export class ProjectController {
     const userId = req.user?.id;
 
     try {
-      const [result]: any = await pool.execute(
-        "DELETE FROM projects WHERE id = ? AND user_id = ?",
-        [id, userId as number]
-      );
+      const { error } = await supabase
+        .from("projects")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
 
-      if (result.affectedRows === 0) {
+      if (error) {
         return res.status(404).json({ success: false, message: "Project not found or unauthorized" });
       }
 
@@ -139,22 +160,23 @@ export class ProjectController {
 
     try {
       // 1. Verify project exists
-      const [projects]: any = await pool.execute(
-        "SELECT * FROM projects WHERE id = ? AND user_id = ?",
-        [id, userId as number]
-      );
+      const { data: projects, error: projectError } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId);
 
-      if (projects.length === 0) {
+      if (projectError || !projects || projects.length === 0) {
         return res.status(404).json({ success: false, message: "Project not found" });
       }
 
       // 2. Fetch all test cases for this project
-      const [cases]: any = await pool.execute(
-        "SELECT * FROM test_cases WHERE project_id = ?",
-        [id]
-      );
+      const { data: cases, error: casesError } = await supabase
+        .from("test_cases")
+        .select("*")
+        .eq("project_id", id);
 
-      if (cases.length === 0) {
+      if (casesError || !cases || cases.length === 0) {
         return res.status(400).json({ success: false, message: "No test cases found in this project" });
       }
 
@@ -163,10 +185,12 @@ export class ProjectController {
       
       for (const testCase of cases) {
         // Fetch assets for this case
-        const [assets]: any = await pool.execute(
-          "SELECT * FROM test_assets WHERE case_id = ?",
-          [testCase.id]
-        );
+        const { data: assets, error: assetsError } = await supabase
+          .from("test_assets")
+          .select("*")
+          .eq("case_id", testCase.id);
+
+        if (assetsError) continue;
 
         if (assets.length === 0) {
           // No assets, run with empty object
@@ -188,11 +212,19 @@ export class ProjectController {
         const { testCase, asset } = exec;
         
         // Create a running record
-        const [runResult]: any = await pool.execute(
-          "INSERT INTO test_runs (user_id, case_id, asset_id, status) VALUES (?, ?, ?, ?)",
-          [userId as number, testCase.id, asset.id, "running"]
-        );
-        const testRunId = runResult.insertId;
+        const { data: runResult, error: runError } = await supabase
+          .from("test_runs")
+          .insert({
+            user_id: userId,
+            case_id: testCase.id,
+            asset_id: asset.id,
+            status: "running"
+          })
+          .select()
+          .single();
+        
+        if (runError) throw runError;
+        const testRunId = (runResult as any).id;
 
         // Return a function to execute the actual run
         return async () => {
@@ -209,17 +241,16 @@ export class ProjectController {
           vulnerabilities.forEach((v: any) => security.addVulnerability(v));
           const finalStatus = security.determineStatus(success);
 
-          await pool.execute(
-            "UPDATE test_runs SET status = ?, execution_time = ?, screenshot_path = ?, logs = ?, vulnerabilities = ? WHERE id = ?",
-            [
-              finalStatus,
-              executionTime,
-              screenshot || null,
-              JSON.stringify(logs),
-              JSON.stringify(vulnerabilities),
-              testRunId
-            ]
-          );
+          await supabase
+            .from("test_runs")
+            .update({
+              status: finalStatus,
+              execution_time: executionTime,
+              screenshot_path: screenshot || null,
+              logs: logs,
+              vulnerabilities: vulnerabilities
+            })
+            .eq("id", testRunId);
           
           return { testCaseId: testCase.id, assetId: asset.id, status: finalStatus };
         };

@@ -3,7 +3,7 @@ import path from "path";
 import fs from "fs";
 import { SecurityChecker, Vulnerability } from "./securityChecker";
 import { AiService } from "./aiService";
-import pool from "../db";
+import supabase from "../db";
 
 export class PlaywrightService {
   static async launchBrowser(): Promise<Browser> {
@@ -233,10 +233,10 @@ export class PlaywrightService {
                   
                   // Update the test case steps in the database
                   steps[currentStepIndex].selector = healedSelector;
-                  await pool.execute(
-                    "UPDATE test_cases SET steps = ? WHERE id = ?",
-                    [JSON.stringify(steps), caseId]
-                  );
+                  await supabase
+                    .from("test_cases")
+                    .update({ steps: JSON.stringify(steps) })
+                    .eq("id", caseId);
                   addLog(`[Self-Healing] Saved new selector to database permanently.`, "info");
                   
                   currentStepIndex++;

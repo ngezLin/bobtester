@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import pool from "../db";
+import supabase from "../db";
 import { ProjectController } from "./projectController";
 
 export class WebhookController {
@@ -15,12 +15,12 @@ export class WebhookController {
     try {
       // For the hackathon, we'll allow triggering if the user provides the owner's ID or a secret
       // Let's find the owner of the project first
-      const [projects]: any = await pool.execute(
-        "SELECT user_id FROM projects WHERE id = ?",
-        [id]
-      );
+      const { data: projects, error: projectError } = await supabase
+        .from("projects")
+        .select("user_id")
+        .eq("id", id);
 
-      if (projects.length === 0) {
+      if (projectError || !projects || projects.length === 0) {
         return res.status(404).json({ success: false, message: "Project not found" });
       }
 

@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import pool from "../db";
+import supabase from "../db";
 import { PlaywrightService } from "../services/playwrightService";
 import { SecurityChecker } from "../services/securityChecker";
 import { AiService } from "../services/aiService";
@@ -40,20 +40,35 @@ export class AiRunController {
         });
       }
 
-      // MODE 2: Save & Run
       // 1. Save the test case
-      const [caseResult]: any = await pool.execute(
-        "INSERT INTO test_cases (user_id, project_id, name, target_url, steps) VALUES (?, ?, ?, ?, ?)",
-        [userId as number, project_id || null, manualName || `[AI] ${goal}`, url, JSON.stringify(manualSteps)]
-      );
-      caseId = caseResult.insertId;
+      const { data: caseResult, error: caseError } = await supabase
+        .from("test_cases")
+        .insert({
+          user_id: userId,
+          project_id: project_id || null,
+          name: manualName || `[AI] ${goal}`,
+          target_url: url,
+          steps: manualSteps
+        })
+        .select()
+        .single();
+
+      if (caseError) throw caseError;
+      caseId = (caseResult as any).id;
 
       // 2. Create a running test run record
-      const [runResult]: any = await pool.execute(
-        "INSERT INTO test_runs (user_id, case_id, status) VALUES (?, ?, ?)",
-        [userId as number, caseId as number, "running"]
-      );
-      testRunId = runResult.insertId;
+      const { data: runResult, error: runError } = await supabase
+        .from("test_runs")
+        .insert({
+          user_id: userId,
+          case_id: caseId,
+          status: "running"
+        })
+        .select()
+        .single();
+
+      if (runError) throw runError;
+      testRunId = (runResult as any).id;
 
       // 3. Respond immediately
       res.json({
@@ -74,18 +89,17 @@ export class AiRunController {
       vulnerabilities.forEach((v) => security.addVulnerability(v));
       const finalStatus = security.determineStatus(success);
 
-      // 7. Persist results to MySQL
-      await pool.execute(
-        "UPDATE test_runs SET status = ?, execution_time = ?, screenshot_path = ?, logs = ?, vulnerabilities = ? WHERE id = ?",
-        [
-          finalStatus,
-          executionTime,
-          screenshot || null,
-          JSON.stringify(logs),
-          JSON.stringify(vulnerabilities),
-          testRunId,
-        ]
-      );
+      // 7. Persist results to Supabase
+      await supabase
+        .from("test_runs")
+        .update({
+          status: finalStatus,
+          execution_time: executionTime,
+          screenshot_path: screenshot || null,
+          logs: logs,
+          vulnerabilities: vulnerabilities,
+        })
+        .eq("id", testRunId);
 
       console.log(
         `✅ [AI Run ${testRunId}] Finished. Status: ${finalStatus} | Time: ${executionTime}ms`
@@ -93,23 +107,23 @@ export class AiRunController {
     } catch (error: any) {
       console.error(`❌ [AI Run] Error:`, error.message);
 
-      // If a run record was created, mark it as failed
-      if (testRunId) {
-        await pool.execute(
-          "UPDATE test_runs SET status = ?, logs = ? WHERE id = ?",
-          [
-            "failed",
-            JSON.stringify([
-              {
-                level: "error",
-                message: error.message,
-                timestamp: new Date().toISOString(),
-              },
-            ]),
-            testRunId,
-          ]
-        ).catch(() => {}); // Don't throw if this also fails
-      }
+        try {
+          await supabase
+            .from("test_runs")
+            .update({
+              status: "failed",
+              logs: [
+                {
+                  level: "error",
+                  message: error.message,
+                  timestamp: new Date().toISOString(),
+                },
+              ],
+            })
+            .eq("id", testRunId);
+        } catch (e) {
+          // Don't throw if this also fails
+        }
     }
   }
 }
