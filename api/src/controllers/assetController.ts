@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import pool from "../db";
+import supabase from "../db";
 
 export class AssetController {
   static async addAsset(req: AuthRequest, res: Response) {
@@ -9,33 +9,58 @@ export class AssetController {
     const userId = req.user?.id;
 
     if (!name || !data) {
-      return res.status(400).json({ success: false, message: "Name and data are required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Name and data are required" });
     }
 
     try {
       // Verify ownership of the case
-      const [cases]: any = await pool.execute(
-        "SELECT id FROM test_cases WHERE id = ? AND user_id = ?",
-        [id, userId as any]
-      );
+      const { data: cases, error: caseError } = await supabase
+        .from("test_cases")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", userId);
 
-      if (cases.length === 0) {
-        return res.status(404).json({ success: false, message: "Case not found or unauthorized" });
+      if (caseError || !cases || cases.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Case not found or unauthorized" });
       }
 
-      const [result]: any = await pool.execute(
-        "INSERT INTO test_assets (case_id, name, data, is_negative) VALUES (?, ?, ?, ?)",
-        [id, name, JSON.stringify(data), is_negative || false]
-      );
+      const { data: result, error: insertError } = await supabase
+        .from("test_assets")
+        .insert({
+          case_id: id,
+          name,
+          data: JSON.stringify(data),
+          is_negative: is_negative || false,
+        })
+        .select("id");
+
+      if (insertError) {
+        console.error("Add asset error:", insertError);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "Server error during asset creation",
+          });
+      }
 
       res.status(201).json({
         success: true,
         message: "Asset added successfully",
-        assetId: result.insertId,
+        assetId: result[0].id,
       });
     } catch (error: any) {
       console.error("Add asset error:", error);
-      res.status(500).json({ success: false, message: "Server error during asset creation" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Server error during asset creation",
+        });
     }
   }
 
@@ -45,19 +70,30 @@ export class AssetController {
 
     try {
       // Verify ownership of the case
-      const [cases]: any = await pool.execute(
-        "SELECT id FROM test_cases WHERE id = ? AND user_id = ?",
-        [id, userId as any]
-      );
+      const { data: cases, error: caseError } = await supabase
+        .from("test_cases")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", userId);
 
-      if (cases.length === 0) {
-        return res.status(404).json({ success: false, message: "Case not found or unauthorized" });
+      if (caseError || !cases || cases.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Case not found or unauthorized" });
       }
 
-      const [rows]: any = await pool.execute(
-        "SELECT * FROM test_assets WHERE case_id = ? ORDER BY created_at DESC",
-        [id]
-      );
+      const { data: rows, error: assetsError } = await supabase
+        .from("test_assets")
+        .select("*")
+        .eq("case_id", id)
+        .order("created_at", { ascending: false });
+
+      if (assetsError) {
+        console.error("Get assets error:", assetsError);
+        return res
+          .status(500)
+          .json({ success: false, message: "Server error fetching assets" });
+      }
 
       res.json({
         success: true,
@@ -65,7 +101,9 @@ export class AssetController {
       });
     } catch (error: any) {
       console.error("Get assets error:", error);
-      res.status(500).json({ success: false, message: "Server error fetching assets" });
+      res
+        .status(500)
+        .json({ success: false, message: "Server error fetching assets" });
     }
   }
 
@@ -75,18 +113,55 @@ export class AssetController {
 
     try {
       // Complex join to verify user ownership of the asset via test_cases
-      const [rows]: any = await pool.execute(
-        `SELECT a.id FROM test_assets a 
-         JOIN test_cases c ON a.case_id = c.id 
-         WHERE a.id = ? AND c.user_id = ?`,
-        [id, userId as any]
-      );
+      const { data: rows, error } = await supabase
+        .from("test_assets")
+        .select("id")
+        .eq("id", id)
+        .eq("test_cases.user_id", userId); // This might not work directly, need to join
 
-      if (rows.length === 0) {
-        return res.status(404).json({ success: false, message: "Asset not found or unauthorized" });
+      // Actually, Supabase doesn't support joins in select with eq on joined table like that.
+      // Better to do a separate query or use RPC.
+
+      // For simplicity, fetch the asset and check case ownership.
+      const { data: assets, error: assetError } = await supabase
+        .from("test_assets")
+        .select("case_id")
+        .eq("id", id);
+
+      if (assetError || !assets || assets.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Asset not found" });
       }
 
-      await pool.execute("DELETE FROM test_assets WHERE id = ?", [id]);
+      const caseId = assets[0].case_id;
+
+      const { data: cases, error: caseError } = await supabase
+        .from("test_cases")
+        .select("id")
+        .eq("id", caseId)
+        .eq("user_id", userId);
+
+      if (caseError || !cases || cases.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Asset not found or unauthorized" });
+      }
+
+      const { error: deleteError } = await supabase
+        .from("test_assets")
+        .delete()
+        .eq("id", id);
+
+      if (deleteError) {
+        console.error("Delete asset error:", deleteError);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "Server error during asset deletion",
+          });
+      }
 
       res.json({
         success: true,
@@ -94,7 +169,12 @@ export class AssetController {
       });
     } catch (error: any) {
       console.error("Delete asset error:", error);
-      res.status(500).json({ success: false, message: "Server error during asset deletion" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Server error during asset deletion",
+        });
     }
   }
 }

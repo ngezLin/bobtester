@@ -1,6 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
-import pool from "../db";
+import supabase from "../db";
 import { exec } from "child_process";
 
 export class CaseController {
@@ -9,23 +9,44 @@ export class CaseController {
     const userId = req.user?.id;
 
     if (!name || !target_url || !steps) {
-      return res.status(400).json({ success: false, message: "Name, target_url, and steps are required" });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Name, target_url, and steps are required",
+        });
     }
 
     try {
-      const [result]: any = await pool.execute(
-        "INSERT INTO test_cases (user_id, name, target_url, steps) VALUES (?, ?, ?, ?)",
-        [userId as number, name, target_url, JSON.stringify(steps)]
-      );
+      const { data: result, error } = await supabase
+        .from("test_cases")
+        .insert({
+          user_id: userId,
+          name,
+          target_url,
+          steps: JSON.stringify(steps),
+        })
+        .select("id");
+      if (error) {
+        console.error("Create case error:", error);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "Server error during case creation",
+          });
+      }
 
       res.status(201).json({
         success: true,
         message: "Test case created successfully",
-        caseId: result.insertId,
+        caseId: result[0].id,
       });
     } catch (error: any) {
       console.error("Create case error:", error);
-      res.status(500).json({ success: false, message: "Server error during case creation" });
+      res
+        .status(500)
+        .json({ success: false, message: "Server error during case creation" });
     }
   }
 
@@ -33,10 +54,17 @@ export class CaseController {
     const userId = req.user?.id;
 
     try {
-      const [rows]: any = await pool.execute(
-        "SELECT id, name, target_url, created_at FROM test_cases WHERE user_id = ? ORDER BY created_at DESC",
-        [userId as number]
-      );
+      const { data: rows, error } = await supabase
+        .from("test_cases")
+        .select("id, name, target_url, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+      if (error) {
+        console.error("Get cases error:", error);
+        return res
+          .status(500)
+          .json({ success: false, message: "Server error fetching cases" });
+      }
 
       res.json({
         success: true,
@@ -44,7 +72,9 @@ export class CaseController {
       });
     } catch (error: any) {
       console.error("Get cases error:", error);
-      res.status(500).json({ success: false, message: "Server error fetching cases" });
+      res
+        .status(500)
+        .json({ success: false, message: "Server error fetching cases" });
     }
   }
 
@@ -53,13 +83,16 @@ export class CaseController {
     const userId = req.user?.id;
 
     try {
-      const [rows]: any = await pool.execute(
-        "SELECT * FROM test_cases WHERE id = ? AND user_id = ?",
-        [id, userId as number]
-      );
+      const { data: rows, error } = await supabase
+        .from("test_cases")
+        .select("*")
+        .eq("id", id)
+        .eq("user_id", userId);
 
-      if (rows.length === 0) {
-        return res.status(404).json({ success: false, message: "Case not found" });
+      if (error || !rows || rows.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Case not found" });
       }
 
       res.json({
@@ -68,7 +101,12 @@ export class CaseController {
       });
     } catch (error: any) {
       console.error("Get case detail error:", error);
-      res.status(500).json({ success: false, message: "Server error fetching case details" });
+      res
+        .status(500)
+        .json({
+          success: false,
+          message: "Server error fetching case details",
+        });
     }
   }
 
@@ -78,10 +116,18 @@ export class CaseController {
     const userId = req.user?.id;
 
     try {
-      await pool.execute(
-        "UPDATE test_cases SET name = ?, target_url = ?, steps = ? WHERE id = ? AND user_id = ?",
-        [name, target_url, JSON.stringify(steps), id, userId as number]
-      );
+      const { error } = await supabase
+        .from("test_cases")
+        .update({ name, target_url, steps: JSON.stringify(steps) })
+        .eq("id", id)
+        .eq("user_id", userId);
+
+      if (error) {
+        console.error("Update case error:", error);
+        return res
+          .status(500)
+          .json({ success: false, message: "Server error during case update" });
+      }
 
       res.json({
         success: true,
@@ -89,7 +135,9 @@ export class CaseController {
       });
     } catch (error: any) {
       console.error("Update case error:", error);
-      res.status(500).json({ success: false, message: "Server error during case update" });
+      res
+        .status(500)
+        .json({ success: false, message: "Server error during case update" });
     }
   }
 
@@ -98,13 +146,20 @@ export class CaseController {
     const userId = req.user?.id;
 
     try {
-      const [result]: any = await pool.execute(
-        "DELETE FROM test_cases WHERE id = ? AND user_id = ?",
-        [id, userId as number]
-      );
+      const { error } = await supabase
+        .from("test_cases")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", userId);
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({ success: false, message: "Case not found or unauthorized" });
+      if (error) {
+        console.error("Delete case error:", error);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "Server error during case deletion",
+          });
       }
 
       res.json({
@@ -113,7 +168,9 @@ export class CaseController {
       });
     } catch (error: any) {
       console.error("Delete case error:", error);
-      res.status(500).json({ success: false, message: "Server error during case deletion" });
+      res
+        .status(500)
+        .json({ success: false, message: "Server error during case deletion" });
     }
   }
 
@@ -121,7 +178,9 @@ export class CaseController {
     const { url } = req.body;
 
     if (!url) {
-      return res.status(400).json({ success: false, message: "URL is required" });
+      return res
+        .status(400)
+        .json({ success: false, message: "URL is required" });
     }
 
     try {
@@ -140,7 +199,9 @@ export class CaseController {
       });
     } catch (error: any) {
       console.error("Record error:", error);
-      res.status(500).json({ success: false, message: "Failed to launch recorder" });
+      res
+        .status(500)
+        .json({ success: false, message: "Failed to launch recorder" });
     }
   }
 }
