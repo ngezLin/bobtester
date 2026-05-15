@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { runService } from "@/api/runs";
+import { projectService } from "@/api/projects";
 import Sidebar from "@/components/common/Sidebar";
 
 interface StepResult {
@@ -28,6 +29,24 @@ export default function AiRunPage() {
   const [steps, setSteps] = useState<StepResult[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await projectService.getProjects();
+      setProjects(res.projects || []);
+      if (res.projects?.length > 0) {
+        setSelectedProjectId(res.projects[0].id.toString());
+      }
+    } catch (e) {
+      console.error("Failed to fetch projects");
+    }
+  };
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,7 +77,7 @@ export default function AiRunPage() {
     setSuccess(null);
 
     try {
-      const data = await runService.aiRun(url, goal, testName, steps);
+      const data = await runService.aiRun(url, goal, testName, steps, selectedProjectId || undefined);
       setResult(data);
       setSuccess("Test case saved! Execution started in the background.");
       // Clear steps after successful start to prevent double submission
@@ -193,17 +212,35 @@ export default function AiRunPage() {
         {steps.length > 0 && (
           <div className="bg-gray-900 border border-blue-500/30 rounded-2xl p-6 space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
             <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wider">
-                  Test Case Name
-                </label>
-                <input
-                  type="text"
-                  value={testName}
-                  onChange={(e) => setTestName(e.target.value)}
-                  placeholder="Give this test a name"
-                  className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-blue-500 transition-all"
-                />
+              <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 mb-8 shadow-xl">
+                <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                  <span>📝</span> Test Case Configuration
+                </h3>
+                
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Test Case Name</label>
+                  <input
+                    type="text"
+                    value={testName}
+                    onChange={(e) => setTestName(e.target.value)}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-xl p-4 text-white font-bold focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    placeholder="E.g., Login Success Flow"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Save to Project (Optional)</label>
+                  <select
+                    value={selectedProjectId}
+                    onChange={(e) => setSelectedProjectId(e.target.value)}
+                    className="w-full bg-gray-950 border border-gray-800 rounded-xl p-4 text-white focus:outline-none focus:border-blue-500"
+                  >
+                    <option value="">-- No Project (Standalone Case) --</option>
+                    {projects.map(p => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

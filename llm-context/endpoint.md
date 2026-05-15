@@ -17,13 +17,17 @@
     - **Response**: `{ assets: [{ name: "XSS Probe", data: { field: "<script>..." }, vulnerability: "XSS" }] }`
 
 ## Execution & Reporting
-- **POST** `/api/run`: Trigger a run. `{ caseId, assetId }`
+- **POST** `/api/runs`: Trigger a run. `{ caseId, assetId }`
 - **GET**  `/api/runs`: List run history.
 - **GET**  `/api/runs/:id`: View detailed result.
     - **Returns**: `{ status: "VULNERABLE" | "SAFE", logs, screenshotPath, vulnerabilities: [{ type: "XSS", evidence: "Dialog popped" }] }`
+- **POST** `/api/runs/ai`: Bob AI Prompt-to-Automation. Generates steps or executes them.
+    - **Mode 1 (Preview)**: `{ url, goal }` → Returns suggested name and steps.
+    - **Mode 2 (Save & Run)**: `{ url, goal, name, steps }` → Saves case and triggers execution.
 
 # Frontend Routes
 - `/`: Login/Register
-- `/record`: Record new cases.
+- `/record`: Record new cases manually.
+- `/ai-run`: Bob AI Prompt-to-Automation interface.
 - `/cases`: Management dashboard.
 - `/runs`: Security report history.

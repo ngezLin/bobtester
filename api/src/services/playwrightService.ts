@@ -113,7 +113,15 @@ export class PlaywrightService {
       addLog("Starting dynamic test execution with Security Probing enabled");
 
       for (const step of steps) {
-        const { action, selector, value } = step;
+        let { action, selector, value } = step;
+        
+        // Clean up AI hallucinated internal:role selectors to standard Playwright role selectors
+        if (selector && selector.includes("internal:role=")) {
+          selector = selector.replace("internal:role=", "role=");
+          // Clean up the trailing "i" flag inside the string (e.g. [name="Submit"i] -> [name="Submit"])
+          selector = selector.replace(/\"i\]/g, '"]');
+        }
+
         const stepStartTime = Date.now();
         
         // Parameter substitution: replace [varName] with assetData.varName

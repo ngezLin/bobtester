@@ -7,7 +7,7 @@ import { AiService } from "../services/aiService";
 
 export class AiRunController {
   static async executeAiRun(req: AuthRequest, res: Response) {
-    const { url, goal, name: manualName, steps: manualSteps } = req.body;
+    const { url, goal, name: manualName, steps: manualSteps, project_id } = req.body;
     const userId = req.user?.id;
 
     if (!url || (!goal && !manualSteps)) {
@@ -43,8 +43,8 @@ export class AiRunController {
       // MODE 2: Save & Run
       // 1. Save the test case
       const [caseResult]: any = await pool.execute(
-        "INSERT INTO test_cases (user_id, name, target_url, steps) VALUES (?, ?, ?, ?)",
-        [userId as number, name || `[AI] ${goal}`, url, JSON.stringify(steps)]
+        "INSERT INTO test_cases (user_id, project_id, name, target_url, steps) VALUES (?, ?, ?, ?, ?)",
+        [userId as number, project_id || null, manualName || `[AI] ${goal}`, url, JSON.stringify(manualSteps)]
       );
       caseId = caseResult.insertId;
 

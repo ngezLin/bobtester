@@ -4,18 +4,28 @@
 graph TD
     User((User)) -->|Record Flow| RecordPage[Record Page]
     RecordPage -->|Paste Steps| API[Express API]
+    
+    User -->|Prompt-to-Automation| AIRunPage[Bob AI Page]
+    AIRunPage -->|Goal & URL| API
+    API -->|Discover Elements| Browserless[Browserless.io]
+    Browserless -->|HTML Map| API
+    API -->|Generate Steps| BobAI[IBM Bob AI / Llama3]
+    BobAI -->|Preview Steps| AIRunPage
+    AIRunPage -->|Save & Run| API
+    
     API -->|Save| DB[(MySQL)]
     
     User -->|Trigger Security Audit| CasesPage[Cases Page]
     CasesPage -->|POST /api/bob/probe| API
-    API -->|Analyze Steps| BobAI[IBM Bob AI]
+    API -->|Analyze Steps| BobAI
     BobAI -->|Generate Payloads| API
     API -->|Save as Assets| DB
     
     User -->|Run Audit| RunsPage[Runs Page]
     RunsPage -->|POST /api/run| API
     API -->|Execute| Runner[Playwright Runner]
-    Runner -->|Inject Payloads| TargetApp((Target App))
+    Runner -->|Cloud Execution| Browserless
+    Browserless -->|Inject Payloads| TargetApp((Target App))
     
     Runner -->|Listen for XSS/SQLi| Detector[Vulnerability Detector]
     Detector -->|Report Findings| API

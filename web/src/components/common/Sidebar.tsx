@@ -15,9 +15,10 @@ export default function Sidebar() {
 
   const navItems = [
     { name: "Dashboard", href: "/dashboard", icon: "📊", badge: "Soon" },
-    { name: "Test Cases", href: "/cases", icon: "📁" },
+    { name: "Projects", href: "/projects", icon: "📁", badge: "New" },
+    { name: "All Test Cases", href: "/cases", icon: "📄" },
     { name: "Record Test", href: "/record", icon: "⏺️" },
-    { name: "Bob AI", href: "/ai-run", icon: "✨", badge: "New" },
+    { name: "Bob AI", href: "/ai-run", icon: "✨" },
     { name: "Recent Runs", href: "/runs", icon: "🕒" },
   ];
 

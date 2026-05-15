@@ -28,7 +28,7 @@ STRICT RULES:
   { "action": "verify", "selector": "<selector>" }
 - Always start with a "goto" step to the target URL.
 - Use Playwright Role-based selectors when possible to match the platform's recording style.
-- Format: internal:role=<role>[name="<name>"i] (e.g., internal:role=textbox[name="Username"i], internal:role=button[name="Submit"i]).
+- Format: role=<role>[name="<name>"] (e.g., role=textbox[name="Username"], role=button[name="Submit"]).
 - If a role-based selector isn't clear, use IDs (#id) or names ([name="..."]).
 - Generate between 4 and 12 steps total.
 
