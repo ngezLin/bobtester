@@ -5,6 +5,7 @@ import { AssetController } from "../controllers/assetController";
 import { RunController } from "../controllers/runController";
 import { AiRunController } from "../controllers/aiRunController";
 import { ProjectController } from "../controllers/projectController";
+import { StatsController } from "../controllers/statsController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -12,6 +13,9 @@ const router = Router();
 // --- AUTH ROUTES ---
 router.post("/auth/register", AuthController.register);
 router.post("/auth/login", AuthController.login);
+
+// --- STATS ROUTES (Protected) ---
+router.get("/stats", authMiddleware, StatsController.getDashboardStats);
 
 // --- PROJECT ROUTES (Protected) ---
 router.post("/projects", authMiddleware, ProjectController.createProject);
