@@ -17,6 +17,7 @@ export default function Sidebar() {
     { name: "Dashboard", href: "/dashboard", icon: "📊", badge: "Soon" },
     { name: "Test Cases", href: "/cases", icon: "📁" },
     { name: "Record Test", href: "/record", icon: "⏺️" },
+    { name: "Bob AI", href: "/ai-run", icon: "✨", badge: "New" },
     { name: "Recent Runs", href: "/runs", icon: "🕒" },
   ];
 

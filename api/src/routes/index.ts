@@ -3,6 +3,7 @@ import { AuthController } from "../controllers/authController";
 import { CaseController } from "../controllers/caseController";
 import { AssetController } from "../controllers/assetController";
 import { RunController } from "../controllers/runController";
+import { AiRunController } from "../controllers/aiRunController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -31,5 +32,7 @@ router.get("/runs/:id", authMiddleware, RunController.getRunById);
 router.delete("/runs/:id", authMiddleware, RunController.deleteRun);
 
 // --- BOB AI ROUTES ---
+// POST /api/runs/ai  - AI generates steps from prompt, Browserless executes them
+router.post("/runs/ai", authMiddleware, AiRunController.executeAiRun);
 
 export default router;
