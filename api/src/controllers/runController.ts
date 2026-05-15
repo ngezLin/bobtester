@@ -51,7 +51,8 @@ export class RunController {
       const { success, screenshot, logs, vulnerabilities } = await PlaywrightService.executeDynamicTest(
         testRunId,
         testCase.steps,
-        assetData
+        assetData,
+        caseId
       );
       const executionTime = Date.now() - startTime;
 

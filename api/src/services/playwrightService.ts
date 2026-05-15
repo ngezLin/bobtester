@@ -2,6 +2,8 @@ import { chromium, Browser, Page } from "playwright";
 import path from "path";
 import fs from "fs";
 import { SecurityChecker, Vulnerability } from "./securityChecker";
+import { AiService } from "./aiService";
+import pool from "../db";
 
 export class PlaywrightService {
   static async launchBrowser(): Promise<Browser> {
@@ -42,7 +44,8 @@ export class PlaywrightService {
   static async executeDynamicTest(
     testRunId: number,
     steps: any[],
-    assetData: any = {}
+    assetData: any = {},
+    caseId?: number
   ): Promise<{ success: boolean; screenshot?: string; logs: any[]; vulnerabilities: Vulnerability[] }> {
     const browser = await this.launchBrowser();
     const context = await browser.newContext();
@@ -199,6 +202,53 @@ export class PlaywrightService {
 
         } catch (stepError: any) {
            addLog(`Step ${currentStepIndex + 1} failed: ${stepError.message}`, "warn");
+
+           // Self-Healing Phase
+           if (caseId && selector && (stepError.message.includes("not found") || stepError.message.includes("Timeout"))) {
+              addLog(`[Self-Healing] Attempting to fix broken selector: ${selector}...`, "warn");
+              try {
+                // Extract lightweight DOM context
+                const domContext = await page.evaluate(() => {
+                  return Array.from(document.querySelectorAll('input, button, a, select, textarea, [role="button"], [role="link"]'))
+                    .map(el => el.outerHTML)
+                    .join('\\n')
+                    .substring(0, 3000); // Limit context size
+                });
+
+                const healedSelector = await AiService.healSelector(action, selector, domContext);
+
+                if (healedSelector && healedSelector !== "null") {
+                  addLog(`[Self-Healing] Bob AI suggested new selector: ${healedSelector}. Retrying...`, "info");
+                  
+                  // Retry the action
+                  if (action === "click") {
+                    await page.locator(healedSelector).click({ timeout: 5000 });
+                  } else if (action === "fill") {
+                    await page.locator(healedSelector).fill(finalValue || "", { timeout: 5000 });
+                  } else if (action === "verify") {
+                    await page.locator(healedSelector).waitFor({ state: "visible", timeout: 5000 });
+                  }
+                  
+                  addLog(`[Self-Healing] Success! The test recovered.`, "info");
+                  
+                  // Update the test case steps in the database
+                  steps[currentStepIndex].selector = healedSelector;
+                  await pool.execute(
+                    "UPDATE test_cases SET steps = ? WHERE id = ?",
+                    [JSON.stringify(steps), caseId]
+                  );
+                  addLog(`[Self-Healing] Saved new selector to database permanently.`, "info");
+                  
+                  currentStepIndex++;
+                  continue; // Move to the next step since this one succeeded now!
+                } else {
+                  addLog(`[Self-Healing] AI could not find a replacement selector.`, "warn");
+                }
+              } catch (healError: any) {
+                addLog(`[Self-Healing] Failed during healing process: ${healError.message}`, "error");
+              }
+           }
+
            throw stepError; // Re-throw to be caught by the main try-catch
         }
 

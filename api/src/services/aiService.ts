@@ -8,8 +8,9 @@ export interface GeneratedStep {
 }
 
 export class AiService {
-  private static baseUrl = process.env.OLLAMA_URL || "http://localhost:11434";
-  private static model = process.env.OLLAMA_MODEL || "llama3";
+  private static baseUrl = process.env.AI_BASE_URL || "http://localhost:11434";
+  private static model = process.env.AI_MODEL || "llama3";
+  private static apiKey = process.env.AI_API_KEY || "";
 
   static async generateTestSteps(url: string, goal: string, elementContext?: string): Promise<{ name: string; steps: GeneratedStep[] }> {
     const systemPrompt = `You are a QA security testing automation agent. Your job is to generate browser automation steps to test a web application.
@@ -46,9 +47,14 @@ Return the JSON array of steps now:`;
 
     console.log(`🤖 [AI] Calling Ollama (${this.model}) at ${this.baseUrl}...`);
 
+    const headers: any = { "Content-Type": "application/json" };
+    if (this.apiKey) {
+      headers["Authorization"] = `Bearer ${this.apiKey}`;
+    }
+
     const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers,
       body: JSON.stringify({
         model: this.model,
         messages: [
@@ -91,5 +97,48 @@ Return the JSON array of steps now:`;
 
     console.log(`🤖 [AI] Generated ${result.steps.length} steps successfully.`);
     return result;
+  }
+
+  static async healSelector(action: string, oldSelector: string, domContext: string): Promise<string | null> {
+    const systemPrompt = `You are Bob AI, an expert QA automation agent with self-healing capabilities.
+A Playwright test step failed because a selector was not found on the page.
+
+Action attempted: ${action}
+Old (broken) selector: ${oldSelector}
+
+Your job is to look at the provided DOM context and find the NEW valid Playwright string selector (e.g., role=button[name="Submit"]).
+RETURN ONLY THE NEW SELECTOR STRING. No explanations, no markdown, no JSON, just the raw string. If you cannot find a replacement, return exactly the word: null`;
+
+    const userPrompt = `DOM CONTEXT:\n${domContext}\n\nNew selector:`;
+
+    console.log(`🤖 [AI] Calling Ollama (${this.model}) for self-healing...`);
+
+    const headers: any = { "Content-Type": "application/json" };
+    if (this.apiKey) {
+      headers["Authorization"] = `Bearer ${this.apiKey}`;
+    }
+
+    try {
+      const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: this.model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          temperature: 0.1,
+          stream: false,
+        }),
+      });
+
+      const data = await response.json();
+      const newSelector = data.choices[0].message.content.trim();
+      return newSelector === "null" ? null : newSelector;
+    } catch (error) {
+      console.error("AI Healing Error:", error);
+      return null;
+    }
   }
 }
