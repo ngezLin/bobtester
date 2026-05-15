@@ -18,12 +18,6 @@ export class CaseController {
     }
 
     try {
-<<<<<<< HEAD
-      const [result]: any = await pool.execute(
-        "INSERT INTO test_cases (user_id, project_id, name, target_url, steps) VALUES (?, ?, ?, ?, ?)",
-        [userId as number, project_id || null, name, target_url, JSON.stringify(steps)]
-      );
-=======
       const { data: result, error } = await supabase
         .from("test_cases")
         .insert({
@@ -42,7 +36,6 @@ export class CaseController {
             message: "Server error during case creation",
           });
       }
->>>>>>> supabaseTry
 
       res.status(201).json({
         success: true,

@@ -66,21 +66,12 @@ export class RunController {
 
       // 5. Execute Dynamically
       const startTime = Date.now();
-<<<<<<< HEAD
-      const { success, screenshot, logs, vulnerabilities } = await PlaywrightService.executeDynamicTest(
-        testRunId,
-        testCase.steps,
-        assetData,
-        caseId
-      );
-=======
       const { success, screenshot, logs, vulnerabilities } =
         await PlaywrightService.executeDynamicTest(
           testRunId,
           testCase.steps,
           assetData,
         );
->>>>>>> supabaseTry
       const executionTime = Date.now() - startTime;
 
       // 6. Calculate Security Status
