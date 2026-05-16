@@ -9,11 +9,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({
-  origin: ["http://localhost:3000", process.env.FRONTEND_URL].filter(Boolean) as string[],
+const allowedOrigins = ["http://localhost:3000", "http://127.0.0.1:3000", process.env.FRONTEND_URL].filter(Boolean) as string[];
+const corsOptions = {
+  origin: process.env.NODE_ENV !== "production" ? true : allowedOrigins,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // Serve static files from storage/screenshots
@@ -28,10 +31,8 @@ app.get("/", (_, res) => {
 
 app.use("/api", routes);
 
-if (process.env.NODE_ENV !== "production") {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
 export default app;

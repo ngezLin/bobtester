@@ -6,6 +6,7 @@ import { RunController } from "../controllers/runController";
 import { ProjectController } from "../controllers/projectController";
 import { StatsController } from "../controllers/statsController";
 import { WebhookController } from "../controllers/webhookController";
+import { ScanController } from "../controllers/scanController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -43,6 +44,13 @@ router.post("/runs", authMiddleware, RunController.executeRun);
 router.get("/runs", authMiddleware, RunController.getRuns);
 router.get("/runs/:id", authMiddleware, RunController.getRunById);
 router.delete("/runs/:id", authMiddleware, RunController.deleteRun);
+
+// --- SCAN ROUTES ---
+// This route is intentionally public for local scan execution. If you want to enforce authentication,
+// add authMiddleware back in and ensure the frontend supplies a valid Authorization token.
+router.post("/scans", ScanController.startScan);
+router.get("/scans/:id", ScanController.getScanById);
+router.post("/scans/:id/terminate", ScanController.terminateScan);
 
 // --- WEBHOOK ROUTES (Public with secret) ---
 router.post("/webhooks/projects/:id", WebhookController.triggerProjectRun);
