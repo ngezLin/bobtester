@@ -11,6 +11,23 @@ const scanOptions = [
   { id: "crypto", label: "Cryptographic Failure Check", description: "Inspect insecure or missing crypto settings." },
 ];
 
+type ScanFinding = {
+  title: string;
+  description: string;
+  severity: string;
+  category: string;
+  remediation?: string;
+  evidence?: Record<string, unknown>;
+};
+
+type ScanReport = {
+  summary: string;
+  counts: {
+    total: number;
+    high: number;
+  };
+};
+
 type ScanHistoryItem = {
   id: string;
   name: string;
@@ -18,6 +35,9 @@ type ScanHistoryItem = {
   status: string;
   checks: string[];
   date: string;
+  startedAt?: string;
+  report: ScanReport | null;
+  findings: ScanFinding[];
 };
 
 const HISTORY_KEY = "bobtester_scan_history";
@@ -54,7 +74,7 @@ export default function ScanCreatePage() {
     );
   };
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setMessage(null);
 
@@ -68,40 +88,54 @@ export default function ScanCreatePage() {
       return;
     }
 
-    const newScan: ScanHistoryItem = {
-      id: `scan-${Date.now()}`,
-      name: testName,
-      url: targetLink,
-      status: "Running",
-      checks: selectedOptions,
-      date: new Date().toLocaleString(),
-    };
-
-    const history = loadScanHistory();
-    saveScanHistory([newScan, ...history]);
-    router.push("/scan");
-
+    const scanId = `scan-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const startedAt = new Date().toISOString();
     setLoading(true);
-    setTimeout(async () => {
-      try {
-        await scanService.startScan({
-          name: testName,
-          url: targetLink,
-          checks: selectedOptions,
-        });
-        const updatedHistory = loadScanHistory().map((item) =>
-          item.id === newScan.id ? { ...item, status: "Completed" } : item,
-        );
-        saveScanHistory(updatedHistory);
-      } catch (error) {
-        const updatedHistory = loadScanHistory().map((item) =>
-          item.id === newScan.id ? { ...item, status: "Failed" } : item,
-        );
-        saveScanHistory(updatedHistory);
-      } finally {
-        setLoading(false);
+
+    try {
+      const data = await scanService.startScan({
+        name: testName,
+        url: targetLink,
+        checks: selectedOptions,
+        scanId,
+      });
+
+      if (!data.success) {
+        throw new Error(data.message || "Scan did not complete successfully.");
       }
-    }, 0);
+
+      const actualScanId = typeof data.scanId === "string" && data.scanId.length > 0 ? data.scanId : scanId;
+      const newScan: ScanHistoryItem = {
+        id: actualScanId,
+        name: testName,
+        url: targetLink,
+        status: "Running",
+        checks: selectedOptions,
+        date: new Date().toLocaleString(),
+        startedAt,
+        report: null,
+        findings: [],
+      };
+
+      const history = loadScanHistory();
+      saveScanHistory([newScan, ...history]);
+      router.push("/scan");
+    } catch (error: any) {
+      const updatedHistory = loadScanHistory().map((item) =>
+        item.id === scanId
+          ? {
+              ...item,
+              status: "Failed",
+              report: null,
+              findings: [],
+            }
+          : item,
+      );
+      saveScanHistory(updatedHistory);
+      setMessage({ text: error.message || "Scan failed to start.", type: "error" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

@@ -1,3 +1,4 @@
+import axios from "axios";
 import { chromium } from "playwright";
 import { scanPolicy } from "../../config";
 
@@ -14,8 +15,40 @@ function isAllowedHost(url: URL, allowedHosts: string[]) {
   );
 }
 
+async function crawlWithAxios(url: string): Promise<CrawledPage[]> {
+  try {
+    const response = await axios.get(url, {
+      timeout: scanPolicy.pageTimeoutMs,
+      validateStatus: () => true,
+    });
+
+    const html = typeof response.data === "string" ? response.data : JSON.stringify(response.data);
+    const headers: Record<string, string> = {};
+
+    Object.entries(response.headers).forEach(([key, value]) => {
+      if (typeof value === "string") {
+        headers[key.toLowerCase()] = value;
+      } else if (Array.isArray(value)) {
+        headers[key.toLowerCase()] = value.join("; ");
+      }
+    });
+
+    return [{ url, html, responseHeaders: headers }];
+  } catch (error: any) {
+    console.warn(`[Crawler] Axios fallback failed for ${url}: ${error.message}`);
+    return [];
+  }
+}
+
 export async function crawlTarget(url: string, allowedHosts: string[]) {
-  const browser = await chromium.launch({ headless: true });
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+  } catch (error: any) {
+    console.warn(`[Crawler] Playwright browser launch failed: ${error.message}. Falling back to Axios fetch.`);
+    return await crawlWithAxios(url);
+  }
+
   const context = await browser.newContext({
     javaScriptEnabled: true,
     ignoreHTTPSErrors: true,
@@ -63,11 +96,16 @@ export async function crawlTarget(url: string, allowedHosts: string[]) {
           continue;
         }
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.warn(`[Crawler] Failed to crawl ${nextUrl}: ${error.message}`);
       continue;
     }
   }
 
   await browser.close();
+  if (pages.length === 0) {
+    return await crawlWithAxios(url);
+  }
+
   return pages;
 }

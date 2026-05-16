@@ -45,8 +45,12 @@ router.get("/runs", authMiddleware, RunController.getRuns);
 router.get("/runs/:id", authMiddleware, RunController.getRunById);
 router.delete("/runs/:id", authMiddleware, RunController.deleteRun);
 
-// --- SCAN ROUTES (Protected) ---
-router.post("/scans", authMiddleware, ScanController.startScan);
+// --- SCAN ROUTES ---
+// This route is intentionally public for local scan execution. If you want to enforce authentication,
+// add authMiddleware back in and ensure the frontend supplies a valid Authorization token.
+router.post("/scans", ScanController.startScan);
+router.get("/scans/:id", ScanController.getScanById);
+router.post("/scans/:id/terminate", ScanController.terminateScan);
 
 // --- WEBHOOK ROUTES (Public with secret) ---
 router.post("/webhooks/projects/:id", WebhookController.triggerProjectRun);

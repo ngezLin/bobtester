@@ -1,6 +1,7 @@
 import { crawlTarget } from "./crawler";
 import { analyzeSecurityHeaders } from "./security-header-checker";
 import { detectReflectedXss } from "./xss-checker";
+import { detectBasicSqlInjection } from "./sqli-checker";
 import { analyzeCryptographicFailures, testTlsConfiguration } from "./crypto-checker";
 import type { ScanJobPayload, ScanFinding } from "./types/scan";
 
@@ -78,6 +79,9 @@ export async function processScanJob(payload: ScanJobPayload) {
     if (checkXss) {
       const xssFinding = await detectReflectedXss(page.url);
       if (xssFinding) findings.push(xssFinding);
+
+      const sqliFinding = await detectBasicSqlInjection(page.url);
+      if (sqliFinding) findings.push(sqliFinding);
     }
 
     if (checkCrypto) {

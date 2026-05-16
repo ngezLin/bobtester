@@ -9,7 +9,7 @@ export interface ScanFinding {
 }
 
 export interface ScanJobPayload {
-  scanId?: number;
+  scanId?: string;
   name?: string;
   url: string;
   allowedHosts: string[];
