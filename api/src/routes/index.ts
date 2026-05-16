@@ -6,6 +6,7 @@ import { RunController } from "../controllers/runController";
 import { ProjectController } from "../controllers/projectController";
 import { StatsController } from "../controllers/statsController";
 import { WebhookController } from "../controllers/webhookController";
+import { ScanController } from "../controllers/scanController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
@@ -43,6 +44,9 @@ router.post("/runs", authMiddleware, RunController.executeRun);
 router.get("/runs", authMiddleware, RunController.getRuns);
 router.get("/runs/:id", authMiddleware, RunController.getRunById);
 router.delete("/runs/:id", authMiddleware, RunController.deleteRun);
+
+// --- SCAN ROUTES (Protected) ---
+router.post("/scans", authMiddleware, ScanController.startScan);
 
 // --- WEBHOOK ROUTES (Public with secret) ---
 router.post("/webhooks/projects/:id", WebhookController.triggerProjectRun);
