@@ -51,10 +51,19 @@ function RecordPageContent() {
 
   const handleStartRecording = async () => {
     setIsRecording(true);
-    setMessage({ text: "Opening recorder on server...", type: "info" });
+    setMessage({ text: "Opening recorder...", type: "info" });
     try {
-      await caseService.recordCase(url);
-      setMessage({ text: "Recorder opened. Perform your actions, then copy the code here.", type: "success" });
+      const response = await caseService.recordCase(url);
+      
+      if (response.isCloud && response.cloudUrl) {
+        window.open(response.cloudUrl, "_blank");
+        setMessage({ 
+          text: "🚀 Cloud Recorder opened in a new tab! 1. Perform your actions there. 2. Go to the 'Recorder' tab in that window. 3. Copy the Playwright code and paste it below.", 
+          type: "success" 
+        });
+      } else {
+        setMessage({ text: "Recorder opened. Perform your actions, then copy the code here.", type: "success" });
+      }
     } catch (err: any) {
       setMessage({ text: err.message || "Failed to start recorder", type: "error" });
       setIsRecording(false);

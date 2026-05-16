@@ -12,8 +12,8 @@ export class PlaywrightService {
     if (apiKey) {
       const wsEndpoint = `wss://production.browserless.io?token=${apiKey}`;
       try {
-        console.log(`🌐 [Browserless] Connecting to remote cloud browser... (Timeout: 15s)`);
-        return await chromium.connectOverCDP(wsEndpoint, { timeout: 15000 });
+        console.log(`🌐 [Browserless] Connecting to remote cloud browser...`);
+        return await chromium.connectOverCDP(wsEndpoint, { timeout: 20000 });
       } catch (error: any) {
         console.error(`❌ [Browserless] Connection failed: ${error.message}`);
         if (isProduction) {
@@ -247,5 +247,14 @@ export class PlaywrightService {
       logs, 
       vulnerabilities: security.getVulnerabilities() 
     };
+  }
+
+  static getCloudRecorderUrl(targetUrl: string): string {
+    const apiKey = process.env.BROWSERLESS_API_KEY;
+    if (!apiKey) return "";
+    
+    // Browserless Debugger URL with auto-navigation
+    // The user can use the 'Recorder' tab inside the debugger
+    return `https://production.browserless.io/debugger?token=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
   }
 }
