@@ -48,7 +48,7 @@ export default function RegisterPage() {
               <span className="text-white text-3xl font-bold">B</span>
             </div>
             <h1 className="text-2xl font-bold text-white">Join BobTester</h1>
-            <p className="text-gray-400 mt-2">Start your AI-powered testing journey</p>
+            <p className="text-gray-400 mt-2">Start your automated testing journey</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">

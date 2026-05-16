@@ -3,7 +3,6 @@ import { AuthController } from "../controllers/authController";
 import { CaseController } from "../controllers/caseController";
 import { AssetController } from "../controllers/assetController";
 import { RunController } from "../controllers/runController";
-import { AiRunController } from "../controllers/aiRunController";
 import { ProjectController } from "../controllers/projectController";
 import { StatsController } from "../controllers/statsController";
 import { WebhookController } from "../controllers/webhookController";
@@ -47,9 +46,5 @@ router.delete("/runs/:id", authMiddleware, RunController.deleteRun);
 
 // --- WEBHOOK ROUTES (Public with secret) ---
 router.post("/webhooks/projects/:id", WebhookController.triggerProjectRun);
-
-// --- BOB AI ROUTES ---
-// POST /api/runs/ai  - AI generates steps from prompt, Browserless executes them
-router.post("/runs/ai", authMiddleware, AiRunController.executeAiRun);
 
 export default router;

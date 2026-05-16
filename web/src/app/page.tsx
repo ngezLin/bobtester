@@ -44,10 +44,10 @@ export default function Home() {
 
         <div className="max-w-7xl mx-auto px-6 pt-20 pb-32 text-center">
           <h1 className="text-6xl md:text-8xl font-extrabold tracking-tighter mb-8 bg-clip-text text-transparent bg-gradient-to-b from-white to-gray-400">
-            Automate Testing <br /> with <span className="text-blue-500">Bob AI</span>
+            Automate Testing <br /> with <span className="text-blue-500">Precision</span>
           </h1>
           <p className="max-w-2xl mx-auto text-xl text-gray-400 mb-12">
-            Record browser flows, parameterize test data, and use AI to generate comprehensive test cases in seconds.
+            Record browser flows, parameterize test data, and execute comprehensive test cases in seconds.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link href="/register" className="w-full sm:w-auto px-10 py-4 bg-white text-black rounded-full font-bold text-lg hover:bg-gray-200 transition-all">
@@ -70,10 +70,10 @@ export default function Home() {
           </p>
         </div>
         <div className="p-8 bg-gray-900 border border-gray-800 rounded-3xl hover:border-emerald-500/50 transition-all group">
-          <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform">🤖</div>
-          <h3 className="text-2xl font-bold mb-4">AI-Powered Data</h3>
+          <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform">📊</div>
+          <h3 className="text-2xl font-bold mb-4">Dynamic Data</h3>
           <p className="text-gray-400 leading-relaxed">
-            Ask Bob to generate negative test assets and edge cases you might have missed.
+            Manage test assets and edge cases easily to ensure full coverage.
           </p>
         </div>
         <div className="p-8 bg-gray-900 border border-gray-800 rounded-3xl hover:border-purple-500/50 transition-all group">
@@ -86,7 +86,7 @@ export default function Home() {
       </div>
 
       <footer className="max-w-7xl mx-auto px-6 py-12 border-t border-gray-900 text-center text-gray-500">
-        © 2026 BobTester AI. Built for the IBM Bob Hackathon.
+        © 2026 BobTester. Built for the IBM Bob Hackathon.
       </footer>
     </main>
   );
