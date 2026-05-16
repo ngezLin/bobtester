@@ -1,6 +1,6 @@
-# Project Roadmap & TODO: BobTester SDK Edition
+# Project Roadmap & TODO
 
-This list tracks the development of BobTester's SDK and developer integration features.
+This list tracks the development of BobTester platform features.
 
 ## Phase 1: Foundation (Completed)
 
@@ -10,61 +10,35 @@ This list tracks the development of BobTester's SDK and developer integration fe
 - [x] **Manual Assets**: Parameterize flows with user data
 - [x] **Dynamic Runner**: Core execution logic with Browserless.io
 - [x] **Security Detection**: XSS, SQLi, and vulnerability scanning
-- [x] **Webhook System**: Basic webhook trigger for projects
+- [x] **Project CRUD**: Create, Read, Update, Delete projects in UI
+- [x] **Folder Organization**: Group test cases into folders within projects
+- [x] **Batch Runner**: Execute all cases in a project concurrently
 
-## Phase 2: SDK Development (Current)
+## Phase 2: Refinement (Current)
 
-- [ ] **API Key Management**: Generate, list, and revoke API keys
-- [ ] **SDK Package Structure**: Create `@bobtester/sdk` npm package
-- [ ] **Core SDK Client**: Implement main client with authentication
-- [ ] **Resource Managers**: Cases, Runs, Projects, Assets APIs
-- [ ] **TypeScript Definitions**: Full type safety for SDK
-- [ ] **Error Handling**: Comprehensive error types and handling
-- [ ] **Retry Logic**: Automatic retry for failed requests
-- [ ] **Rate Limiting**: Handle API rate limits gracefully
+- [ ] **Robust JSON Handling**: Ensure steps and assets are saved/parsed correctly (In Progress)
+- [ ] **Improved Record UI**: Easier project/folder selection during recording (Completed)
+- [ ] **Error Visualizer**: Better logs and failure screenshots in Dashboard
+- [ ] **Data Set Templates**: Pre-configured security payloads for quick testing
+- [ ] **Search & Filter**: Find test cases quickly across projects
 
-## Phase 3: CLI Tool
+## Phase 3: Advanced Reporting & Analytics
 
-- [ ] **CLI Package**: Create `@bobtester/cli` npm package
-- [ ] **Authentication**: Login and API key management
-- [ ] **Test Execution**: Run tests from command line
-- [ ] **Test Creation**: Create tests via CLI
-- [ ] **Configuration**: Support for config files (bobtester.yml)
-- [ ] **Output Formatting**: JSON, table, and pretty-print formats
-- [ ] **Watch Mode**: Auto-run tests on file changes
+- [ ] **Dashboard Metrics**: Trends of pass/fail and vulnerabilities found
+- [ ] **PDF/HTML Export**: Generate shareable reports for stakeholders
+- [ ] **Execution History**: Detailed timeline of project performance
+- [ ] **Screenshot Comparison**: Visual regression testing (Basic)
 
-## Phase 4: CI/CD Integrations
+## Phase 4: Integrations & Automation
 
-- [ ] **GitHub Actions**: Create reusable action
-- [ ] **GitLab CI**: Create CI component
-- [ ] **Jenkins Plugin**: Basic Jenkins integration
-- [ ] **Webhook Enhancements**: Subscribe/unsubscribe endpoints
-- [ ] **Event System**: Real-time notifications for test events
-- [ ] **Status Badges**: Generate status badges for README
+- [ ] **Webhook Notifications**: Send results to Slack/Discord on suite completion
+- [ ] **Environment Configs**: Support for testing against multiple URLs (dev/staging/prod)
+- [ ] **Scheduled Runs**: Run project suites on a timer (Daily/Hourly)
+- [ ] **Status Badges**: Project health badges for internal documentation
 
-## Phase 5: Test-as-Code Format
+## Phase 5: Developer Experience
 
-- [ ] **YAML Schema**: Define test case YAML format
-- [ ] **JSON Schema**: Define test case JSON format
-- [ ] **Parser**: Parse YAML/JSON into test cases
-- [ ] **Validator**: Validate test configurations
-- [ ] **Examples**: Create example test files
-- [ ] **Documentation**: Document format specification
-
-## Phase 6: Enhanced Features
-
-- [ ] **Batch Execution**: Run multiple tests in parallel
-- [ ] **Test Suites**: Group tests into suites
-- [ ] **Environment Variables**: Support for env-specific configs
-- [ ] **Secrets Management**: Secure handling of sensitive data
-- [ ] **Reporting**: Generate HTML/PDF test reports
-- [ ] **Metrics**: Track test execution metrics over time
-
-## Phase 7: Documentation & Examples
-
-- [ ] **SDK Documentation**: Complete API reference
-- [ ] **Getting Started Guide**: Quick start tutorial
-- [ ] **Integration Examples**: Sample projects for each CI/CD platform
-- [ ] **Best Practices**: Guide for writing maintainable tests
-- [ ] **Video Tutorials**: Screen recordings of common workflows
-- [ ] **API Playground**: Interactive API documentation
+- [ ] **Export to Playwright**: Download test cases as valid Playwright JS files
+- [ ] **Step Reordering**: Drag-and-drop to reorder recorded steps
+- [ ] **Conditional Logic**: Simple if/then steps (e.g., skip if element exists)
+- [ ] **Cookie/Storage Import**: Session persistence between tests

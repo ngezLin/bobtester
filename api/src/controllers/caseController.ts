@@ -5,7 +5,7 @@ import { exec } from "child_process";
 
 export class CaseController {
   static async createCase(req: AuthRequest, res: Response) {
-    const { name, target_url, steps, project_id } = req.body;
+    const { name, target_url, steps, project_id, folder } = req.body;
     const userId = req.user?.id;
 
     if (!name || !target_url || !steps) {
@@ -22,9 +22,11 @@ export class CaseController {
         .from("test_cases")
         .insert({
           user_id: userId,
+          project_id: project_id || null,
+          folder: folder || "General",
           name,
           target_url,
-          steps: JSON.stringify(steps),
+          steps: steps,
         })
         .select("id");
       if (error) {
@@ -56,7 +58,7 @@ export class CaseController {
     try {
       const { data: rows, error } = await supabase
         .from("test_cases")
-        .select("id, name, target_url, created_at")
+        .select("id, name, target_url, created_at, folder, project_id")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
       if (error) {
@@ -118,7 +120,7 @@ export class CaseController {
     try {
       const { error } = await supabase
         .from("test_cases")
-        .update({ name, target_url, steps: JSON.stringify(steps) })
+        .update({ name, target_url, steps: steps })
         .eq("id", id)
         .eq("user_id", userId);
 

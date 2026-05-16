@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Sidebar from "@/components/common/Sidebar";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { caseService } from "@/api/cases";
+import { projectService } from "@/api/projects";
 
 export default function RecordPage() {
   const [url, setUrl] = useState("https://example.com");
@@ -11,8 +12,34 @@ export default function RecordPage() {
   const [caseName, setCaseName] = useState("");
   const [rawCode, setRawCode] = useState("");
   const [loading, setLoading] = useState(false);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [folder, setFolder] = useState("General");
   const [message, setMessage] = useState({ text: "", type: "" });
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preselectedProjectId = searchParams.get("project_id");
+
+  useEffect(() => {
+    fetchProjects();
+  }, []);
+
+  const fetchProjects = async () => {
+    try {
+      const res = await projectService.getProjects();
+      const projectList = res.projects || [];
+      setProjects(projectList);
+      
+      // If project_id is in URL, use it; otherwise use the first project
+      if (preselectedProjectId) {
+        setSelectedProjectId(preselectedProjectId);
+      } else if (projectList.length > 0) {
+        setSelectedProjectId(projectList[0].id.toString());
+      }
+    } catch (error) {
+      console.error("Failed to fetch projects", error);
+    }
+  };
 
   const handleStartRecording = async () => {
     setIsRecording(true);
@@ -96,6 +123,8 @@ export default function RecordPage() {
         name: caseName,
         target_url: url,
         steps: steps,
+        project_id: selectedProjectId ? parseInt(selectedProjectId) : null,
+        folder: folder || "General",
       });
 
       if (data.success) {
@@ -166,6 +195,32 @@ export default function RecordPage() {
               </div>
 
               <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Assign to Project</label>
+                    <select
+                      value={selectedProjectId}
+                      onChange={(e) => setSelectedProjectId(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="">None (Personal)</option>
+                      {projects.map((p) => (
+                        <option key={p.id} value={p.id}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">Folder / Category</label>
+                    <input
+                      type="text"
+                      value={folder}
+                      onChange={(e) => setFolder(e.target.value)}
+                      className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                      placeholder="e.g., Authentication"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-400 mb-2">Test Case Name</label>
                   <input

@@ -93,3 +93,5 @@ CREATE TABLE test_runs (
         REFERENCES test_assets(id)
         ON DELETE SET NULL
 );
+
+ALTER TABLE test_cases ADD COLUMN folder VARCHAR(255) DEFAULT 'General';

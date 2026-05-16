@@ -79,7 +79,7 @@ export class ProjectController {
       // Fetch cases for this project
       const { data: cases, error: casesError } = await supabase
         .from("test_cases")
-        .select("id, name, target_url, created_at")
+        .select("id, name, target_url, created_at, folder")
         .eq("project_id", id)
         .order("created_at", { ascending: true });
 

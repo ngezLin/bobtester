@@ -113,32 +113,63 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white">Test Cases in Suite ({cases.length})</h2>
+        <h2 className="text-xl font-bold text-white">Test Suite ({cases.length} Cases)</h2>
+        <Link
+          href={`/record?project_id=${id}`}
+          className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2"
+        >
+          <span>+</span> Add Test Case
+        </Link>
       </div>
 
       {cases.length === 0 ? (
         <div className="border border-dashed border-gray-800 rounded-xl p-12 text-center">
-          <p className="text-gray-500">No test cases in this project yet.</p>
+          <p className="text-gray-500 mb-6">No test cases in this project yet.</p>
+          <Link
+            href={`/record?project_id=${id}`}
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20"
+          >
+            Record First Case
+          </Link>
         </div>
       ) : (
-        <div className="space-y-3">
-          {cases.map((c: any) => (
-            <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between group hover:border-gray-700 transition-colors">
-              <div>
-                <Link href={`/cases/${c.id}/config`} className="text-lg font-bold text-white hover:text-blue-400 transition-colors">
-                  {c.name}
-                </Link>
-                <div className="text-sm text-gray-500 mt-1 truncate max-w-md font-mono">
-                  {c.target_url}
-                </div>
+        <div className="space-y-10">
+          {Object.entries(
+            cases.reduce((acc: any, c: any) => {
+              const f = c.folder || "General";
+              if (!acc[f]) acc[f] = [];
+              acc[f].push(c);
+              return acc;
+            }, {})
+          ).map(([folderName, folderCases]: [string, any]) => (
+            <div key={folderName}>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-blue-500 text-lg">📂</span>
+                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">{folderName}</h3>
+                <div className="flex-1 h-px bg-gray-800 ml-4"></div>
               </div>
-              <div className="flex items-center gap-4">
-                <Link 
-                  href={`/cases/${c.id}/config`}
-                  className="text-gray-400 hover:text-white bg-gray-800 px-3 py-1.5 rounded text-sm transition-colors"
-                >
-                  Edit / Configure
-                </Link>
+              
+              <div className="space-y-3">
+                {folderCases.map((c: any) => (
+                  <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between group hover:border-gray-700 transition-colors">
+                    <div>
+                      <Link href={`/cases/${c.id}/config`} className="text-lg font-bold text-white hover:text-blue-400 transition-colors">
+                        {c.name}
+                      </Link>
+                      <div className="text-sm text-gray-500 mt-1 truncate max-w-md font-mono">
+                        {c.target_url}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Link 
+                        href={`/cases/${c.id}/config`}
+                        className="text-gray-400 hover:text-white bg-gray-800 px-3 py-1.5 rounded text-sm transition-colors"
+                      >
+                        Edit / Configure
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}

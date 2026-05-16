@@ -33,7 +33,7 @@ export class AssetController {
         .insert({
           case_id: id,
           name,
-          data: JSON.stringify(data),
+          data: data,
           is_negative: is_negative || false,
         })
         .select("id");

@@ -54,11 +54,31 @@ export class PlaywrightService {
     let screenshotPath: string | undefined;
     let success = true;
     let currentStepIndex = 0;
+    
+    // Robustness: If steps is a string (due to previous double-stringification), parse it
+    if (typeof steps === "string") {
+      try {
+        steps = JSON.parse(steps);
+      } catch (e) {
+        console.error(`[Run ${testRunId}] [ERROR] Failed to parse steps:`, e);
+        steps = [];
+      }
+    }
 
     const addLog = (message: string, level: string = "info") => {
       logs.push({ message, level, timestamp: new Date().toISOString() });
       console.log(`[Run ${testRunId}] [${level.toUpperCase()}] ${message}`);
     };
+
+    // Robustness: If assetData is a string (due to previous double-stringification), parse it
+    if (typeof assetData === "string") {
+      try {
+        assetData = JSON.parse(assetData);
+      } catch (e: any) {
+        addLog(`Failed to parse asset data string: ${e.message}`, "warn");
+        assetData = {};
+      }
+    }
 
     // --- Security Listeners ---
     
