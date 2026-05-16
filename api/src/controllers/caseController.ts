@@ -185,6 +185,13 @@ export class CaseController {
         .json({ success: false, message: "URL is required" });
     }
 
+    if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Recording is only supported in the local development environment. Please use your local instance to record tests." 
+      });
+    }
+
     try {
       console.log(`Starting recorder for: ${url}`);
       exec(`npx playwright codegen ${url}`, (error, stdout, stderr) => {

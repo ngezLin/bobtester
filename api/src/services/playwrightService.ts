@@ -7,15 +7,23 @@ import supabase from "../db";
 export class PlaywrightService {
   static async launchBrowser(): Promise<Browser> {
     const apiKey = process.env.BROWSERLESS_API_KEY;
+    const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
-    try {
-      if (apiKey && process.env.BROWSER_MODE !== "local") {
-        const wsEndpoint = `wss://production.browserless.io?token=${apiKey}`;
-        console.log("🌐 [Browserless] Connecting to remote cloud browser...");
-        return await chromium.connectOverCDP(wsEndpoint, { timeout: 10000 });
+    if (apiKey) {
+      const wsEndpoint = `wss://production.browserless.io?token=${apiKey}`;
+      try {
+        console.log(`🌐 [Browserless] Connecting to remote cloud browser... (Timeout: 15s)`);
+        return await chromium.connectOverCDP(wsEndpoint, { timeout: 15000 });
+      } catch (error: any) {
+        console.error(`❌ [Browserless] Connection failed: ${error.message}`);
+        if (isProduction) {
+          throw new Error("Cloud browser connection failed in production. Please check your BROWSERLESS_API_KEY.");
+        }
       }
-    } catch (error: any) {
-      console.warn(`⚠️ [Browserless] Connection failed: ${error.message}. Falling back to local browser...`);
+    }
+
+    if (isProduction) {
+      throw new Error("BROWSERLESS_API_KEY is missing. Cloud browser is required for production execution.");
     }
 
     console.log("💻 [Playwright] Launching local browser...");
