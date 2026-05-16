@@ -5,3 +5,5 @@ storage/screenshots/*
 !storage/screenshots/.gitkeep
 test.png
 scratch/
+
+.vercel

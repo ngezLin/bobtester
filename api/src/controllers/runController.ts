@@ -57,14 +57,7 @@ export class RunController {
       }
       const testRunId = runResult[0].id;
 
-      // 4. Respond to client immediately
-      res.json({
-        success: true,
-        message: "Test execution started",
-        testRunId,
-      });
-
-      // 5. Execute Dynamically
+      // 4. Execute Dynamically
       const startTime = Date.now();
       const { success, screenshot, logs, vulnerabilities } =
         await PlaywrightService.executeDynamicTest(
@@ -74,13 +67,12 @@ export class RunController {
         );
       const executionTime = Date.now() - startTime;
 
-      // 6. Calculate Security Status
+      // 5. Calculate Security Status
       const security = new SecurityChecker();
-      // Add existing vulnerabilities back to instance to use status logic
       vulnerabilities.forEach((v) => security.addVulnerability(v));
       const finalStatus = security.determineStatus(success);
 
-      // 7. Update Test Run record
+      // 6. Update Test Run record
       await supabase
         .from("test_runs")
         .update({
@@ -91,6 +83,14 @@ export class RunController {
           vulnerabilities: JSON.stringify(vulnerabilities),
         })
         .eq("id", testRunId);
+
+      // 7. Respond to client
+      res.json({
+        success: true,
+        message: "Test execution completed",
+        testRunId,
+        status: finalStatus
+      });
     } catch (error: any) {
       console.error("Run execution error:", error);
     }

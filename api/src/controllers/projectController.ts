@@ -259,17 +259,17 @@ export class ProjectController {
       // Execute all inserts
       const executableRuns = await Promise.all(runPromises);
 
-      // 5. Respond immediately so UI doesn't block
+      // 5. Execute all runs and wait for completion
+      console.log(`🚀 [Batch Runner] Starting ${executions.length} executions concurrently...`);
+      await Promise.allSettled(executableRuns.map(runFn => runFn()));
+      
+      console.log(`✅ [Batch Runner] Suite completed for Project ${id}`);
+
+      // 6. Respond after all tests are finished
       res.json({
         success: true,
-        message: `Batch run started for ${executions.length} executions (${cases.length} cases).`,
+        message: `Batch run completed for ${executions.length} executions.`,
         casesRun: executions.length
-      });
-
-      // 6. Run them in the background (Concurrent execution for Hackathon flex)
-      console.log(`🚀 [Batch Runner] Starting ${executions.length} executions concurrently...`);
-      Promise.allSettled(executableRuns.map(runFn => runFn())).then(results => {
-        console.log(`✅ [Batch Runner] Suite completed for Project ${id}`);
       });
 
     } catch (error: any) {
