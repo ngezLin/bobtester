@@ -10,7 +10,7 @@ export class PlaywrightService {
     const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
     if (apiKey) {
-      const wsEndpoint = `wss://production.browserless.io?token=${apiKey}`;
+      const wsEndpoint = `wss://chrome.browserless.io?token=${apiKey}`;
       try {
         console.log(`🌐 [Browserless] Connecting to remote cloud browser...`);
         return await chromium.connectOverCDP(wsEndpoint, { timeout: 20000 });
@@ -255,6 +255,6 @@ export class PlaywrightService {
     
     // Browserless Debugger URL with auto-navigation
     // The user can use the 'Recorder' tab inside the debugger
-    return `https://production.browserless.io/debugger?token=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
+    return `https://chrome.browserless.io/debugger?token=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
   }
 }
