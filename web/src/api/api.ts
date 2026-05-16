@@ -1,5 +1,8 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://bobtester-u9xe.vercel.app/api";
-// const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000/api";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 
+  (typeof window !== "undefined" && window.location.hostname === "localhost" 
+    ? "http://localhost:4000/api" 
+    : "https://bobtester-u9xe.vercel.app/api");
+
 
 async function request(endpoint: string, options: RequestInit = {}) {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;

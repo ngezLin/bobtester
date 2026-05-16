@@ -2,6 +2,8 @@ import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import supabase from "../db";
 import { exec } from "child_process";
+import { PlaywrightService } from "../services/playwrightService";
+
 
 export class CaseController {
   static async createCase(req: AuthRequest, res: Response) {
@@ -185,15 +187,22 @@ export class CaseController {
         .json({ success: false, message: "URL is required" });
     }
 
-    if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Recording is only supported in the local development environment. Please use your local instance to record tests." 
+    console.log(`[Record Request] URL: ${url}, VERCEL: ${process.env.VERCEL}, NODE_ENV: ${process.env.NODE_ENV}`);
+
+    const isCloudEnvironment = process.env.VERCEL || process.env.NODE_ENV === "production";
+    
+    if (isCloudEnvironment) {
+      const cloudUrl = PlaywrightService.getCloudRecorderUrl(url);
+      return res.json({ 
+        success: true, 
+        isCloud: true,
+        cloudUrl,
+        message: "Cloud recorder session prepared. Please use the remote browser to record your actions." 
       });
     }
 
     try {
-      console.log(`Starting recorder for: ${url}`);
+      console.log(`Starting local recorder for: ${url}`);
       exec(`npx playwright codegen ${url}`, (error, stdout, stderr) => {
         if (error) {
           console.error(`Exec error: ${error}`);
@@ -204,7 +213,8 @@ export class CaseController {
 
       res.json({
         success: true,
-        message: "Recorder launched. Please check your desktop.",
+        isCloud: false,
+        message: "Local recorder launched. Please check your desktop.",
       });
     } catch (error: any) {
       console.error("Record error:", error);
