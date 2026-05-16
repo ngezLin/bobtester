@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Sidebar from "@/components/common/Sidebar";
 import { useRouter, useSearchParams } from "next/navigation";
 import { caseService } from "@/api/cases";
 import { projectService } from "@/api/projects";
 
-export default function RecordPage() {
+function RecordPageContent() {
   const [url, setUrl] = useState("https://example.com");
   const [isRecording, setIsRecording] = useState(false);
   const [caseName, setCaseName] = useState("");
@@ -256,5 +256,13 @@ export default function RecordPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function RecordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">Loading...</div>}>
+      <RecordPageContent />
+    </Suspense>
   );
 }
