@@ -77,14 +77,22 @@ export default function ScanLandingPage() {
               <div className="mt-6 grid gap-4">
                 {runningScans.map((scan) => (
                   <div key={scan.id} className="rounded-3xl border border-yellow-500/30 bg-gray-900 p-5">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <p className="text-lg font-semibold text-white">{scan.name}</p>
-                        <p className="text-sm text-gray-400">{scan.url}</p>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="text-lg font-semibold text-white truncate">{scan.name}</p>
+                          <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-sm text-yellow-200">Running</span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-400 truncate">{scan.url}</p>
                       </div>
-                      <div className="text-right">
-                        <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-sm text-yellow-200">Running</span>
-                        <p className="mt-2 text-sm text-gray-500">{scan.date}</p>
+                      <div className="flex items-center justify-between gap-3 md:justify-end">
+                        <p className="text-sm text-gray-500">{scan.date}</p>
+                        <button
+                          type="button"
+                          className="rounded-full bg-blue-600/10 px-4 py-2 text-sm font-semibold text-blue-200 transition hover:bg-blue-600/20"
+                        >
+                          View details
+                        </button>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
@@ -123,22 +131,30 @@ export default function ScanLandingPage() {
               <div className="grid gap-4">
                 {scanHistory.map((item) => (
                   <div key={item.id} className="rounded-3xl border border-gray-800 bg-gray-950 p-5">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <p className="text-lg font-semibold text-white">{item.name}</p>
-                        <p className="text-sm text-gray-400">{item.url}</p>
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-3">
+                          <p className="text-lg font-semibold text-white truncate">{item.name}</p>
+                          <span className={`inline-flex rounded-full px-3 py-1 text-sm ${
+                            item.status === "Completed"
+                              ? "bg-emerald-500/15 text-emerald-300"
+                              : item.status === "Failed"
+                              ? "bg-red-500/15 text-red-300"
+                              : "bg-yellow-500/15 text-yellow-200"
+                          }`}>
+                            {item.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm text-gray-400 truncate">{item.url}</p>
                       </div>
-                      <div className="text-right">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-sm ${
-                          item.status === "Completed"
-                            ? "bg-emerald-500/15 text-emerald-300"
-                            : item.status === "Failed"
-                            ? "bg-red-500/15 text-red-300"
-                            : "bg-yellow-500/15 text-yellow-200"
-                        }`}>
-                          {item.status}
-                        </span>
-                        <p className="mt-2 text-sm text-gray-500">{item.date}</p>
+                      <div className="flex items-center justify-between gap-3 md:justify-end">
+                        <p className="text-sm text-gray-500">{item.date}</p>
+                        <button
+                          type="button"
+                          className="rounded-full bg-blue-600/10 px-4 py-2 text-sm font-semibold text-blue-200 transition hover:bg-blue-600/20"
+                        >
+                          View details
+                        </button>
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
