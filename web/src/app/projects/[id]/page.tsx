@@ -114,12 +114,6 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-white">Test Cases in Suite ({cases.length})</h2>
-        <Link 
-          href="/ai-run"
-          className="bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-        >
-          + Add via Bob AI
-        </Link>
       </div>
 
       {cases.length === 0 ? (

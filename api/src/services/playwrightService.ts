@@ -2,7 +2,6 @@ import { chromium, Browser, Page } from "playwright";
 import path from "path";
 import fs from "fs";
 import { SecurityChecker, Vulnerability } from "./securityChecker";
-import { AiService } from "./aiService";
 import supabase from "../db";
 
 export class PlaywrightService {
@@ -118,10 +117,9 @@ export class PlaywrightService {
       for (const step of steps) {
         let { action, selector, value } = step;
         
-        // Clean up AI hallucinated internal:role selectors to standard Playwright role selectors
+        // Clean up internal:role selectors to standard Playwright role selectors
         if (selector && selector.includes("internal:role=")) {
           selector = selector.replace("internal:role=", "role=");
-          // Clean up the trailing "i" flag inside the string (e.g. [name="Submit"i] -> [name="Submit"])
           selector = selector.replace(/\"i\]/g, '"]');
         }
 
@@ -150,7 +148,6 @@ export class PlaywrightService {
             case "click":
               addLog(`Clicking ${selector}`);
               await page.locator(selector).click();
-              // Wait for network to settle after click to measure potential DB delay
               await page.waitForLoadState("networkidle").catch(() => {});
               break;
             case "verify":
@@ -169,7 +166,6 @@ export class PlaywrightService {
                 for (const part of parts) {
                   try {
                     const locator = page.getByText(part, { exact: false });
-                    // Use a very short timeout for each part to keep it fast
                     await locator.waitFor({ state: "visible", timeout: 2000 });
                     found = true;
                     addLog(`Found match for text part: "${part}"`);
@@ -195,61 +191,13 @@ export class PlaywrightService {
           }
 
           const stepDuration = Date.now() - stepStartTime;
-          // Analyze if this specific step (with its payload) caused a vulnerability
           if (finalValue) {
             security.analyzePayloadImpact(action, finalValue, stepDuration, true, currentStepIndex);
           }
 
         } catch (stepError: any) {
            addLog(`Step ${currentStepIndex + 1} failed: ${stepError.message}`, "warn");
-
-           // Self-Healing Phase
-           if (caseId && selector && (stepError.message.includes("not found") || stepError.message.includes("Timeout"))) {
-              addLog(`[Self-Healing] Attempting to fix broken selector: ${selector}...`, "warn");
-              try {
-                // Extract lightweight DOM context
-                const domContext = await page.evaluate(() => {
-                  return Array.from(document.querySelectorAll('input, button, a, select, textarea, [role="button"], [role="link"]'))
-                    .map(el => el.outerHTML)
-                    .join('\\n')
-                    .substring(0, 3000); // Limit context size
-                });
-
-                const healedSelector = await AiService.healSelector(action, selector, domContext);
-
-                if (healedSelector && healedSelector !== "null") {
-                  addLog(`[Self-Healing] Bob AI suggested new selector: ${healedSelector}. Retrying...`, "info");
-                  
-                  // Retry the action
-                  if (action === "click") {
-                    await page.locator(healedSelector).click({ timeout: 5000 });
-                  } else if (action === "fill") {
-                    await page.locator(healedSelector).fill(finalValue || "", { timeout: 5000 });
-                  } else if (action === "verify") {
-                    await page.locator(healedSelector).waitFor({ state: "visible", timeout: 5000 });
-                  }
-                  
-                  addLog(`[Self-Healing] Success! The test recovered.`, "info");
-                  
-                  // Update the test case steps in the database
-                  steps[currentStepIndex].selector = healedSelector;
-                  await supabase
-                    .from("test_cases")
-                    .update({ steps: JSON.stringify(steps) })
-                    .eq("id", caseId);
-                  addLog(`[Self-Healing] Saved new selector to database permanently.`, "info");
-                  
-                  currentStepIndex++;
-                  continue; // Move to the next step since this one succeeded now!
-                } else {
-                  addLog(`[Self-Healing] AI could not find a replacement selector.`, "warn");
-                }
-              } catch (healError: any) {
-                addLog(`[Self-Healing] Failed during healing process: ${healError.message}`, "error");
-              }
-           }
-
-           throw stepError; // Re-throw to be caught by the main try-catch
+           throw stepError;
         }
 
         currentStepIndex++;
@@ -271,60 +219,5 @@ export class PlaywrightService {
       logs, 
       vulnerabilities: security.getVulnerabilities() 
     };
-  }
-
-  static async discoverPageElements(url: string): Promise<string> {
-    const browser = await this.launchBrowser();
-    try {
-      const page = await browser.newPage();
-      console.log(`🔍 [Discovery] Navigating to ${url}...`);
-      await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-
-      const elements = await page.evaluate(() => {
-        const getLabel = (el: HTMLElement) => {
-          if (el.id) {
-            const label = document.querySelector(`label[for="${el.id}"]`);
-            if (label) return label.textContent?.trim();
-          }
-          const parentLabel = el.closest("label");
-          if (parentLabel) return parentLabel.textContent?.trim();
-          return null;
-        };
-
-        const interactive = Array.from(
-          document.querySelectorAll('input, button, a, [role="button"], select, textarea')
-        );
-
-        return interactive
-          .map((el: any) => {
-            const tag = el.tagName.toLowerCase();
-            const role = el.getAttribute("role") || 
-                        (tag === "input" && (el.type === "text" || !el.type) ? "textbox" : 
-                         tag === "input" && el.type === "password" ? "textbox" :
-                         tag === "button" || el.type === "submit" ? "button" :
-                         tag === "a" ? "link" : tag);
-            
-            const name = el.getAttribute("aria-label") || 
-                        getLabel(el) || 
-                        el.placeholder || 
-                        el.textContent?.trim().slice(0, 30) || 
-                        el.name || "";
-
-            const id = el.id ? `#${el.id}` : "";
-            
-            // Format in a way that suggests Playwright's internal:role syntax
-            return `Role: ${role}, Name: "${name}"${id ? `, ID: ${id}` : ""}`;
-          })
-          .filter((s) => s.length > 10)
-          .slice(0, 50);
-      });
-
-      return elements.join("\n");
-    } catch (error: any) {
-      console.error(`❌ [Discovery] Failed: ${error.message}`);
-      return "Could not extract page elements.";
-    } finally {
-      await browser.close();
-    }
   }
 }
