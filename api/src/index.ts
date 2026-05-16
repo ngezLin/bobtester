@@ -10,7 +10,7 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors({
-  origin: ["http://localhost:3000", process.env.FRONTEND_URL].filter(Boolean) as string[],
+  origin: ["http://localhost:3000", "https://bobtester-u9xe.vercel.app", process.env.FRONTEND_URL].filter(Boolean) as string[],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));

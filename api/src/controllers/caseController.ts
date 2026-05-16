@@ -185,10 +185,14 @@ export class CaseController {
         .json({ success: false, message: "URL is required" });
     }
 
-    if (process.env.VERCEL === "1" || process.env.NODE_ENV === "production") {
+    console.log(`[Record Request] URL: ${url}, VERCEL: ${process.env.VERCEL}, NODE_ENV: ${process.env.NODE_ENV}`);
+
+    const isCloudEnvironment = process.env.VERCEL || process.env.NODE_ENV === "production";
+    
+    if (isCloudEnvironment) {
       return res.status(400).json({ 
         success: false, 
-        message: "Recording is only supported in the local development environment. Please use your local instance to record tests." 
+        message: "Recording tests is only supported in a local development environment because it requires a desktop GUI. To record a test, please run BobTester on your local machine." 
       });
     }
 

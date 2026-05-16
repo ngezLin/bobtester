@@ -22,6 +22,14 @@ function RecordPageContent() {
 
   useEffect(() => {
     fetchProjects();
+    
+    // Check if running in production (not localhost)
+    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+      setMessage({ 
+        text: "⚠️ Note: Recording tests only works when running BobTester on your local machine (localhost). It is disabled on the live cloud version.", 
+        type: "info" 
+      });
+    }
   }, []);
 
   const fetchProjects = async () => {
