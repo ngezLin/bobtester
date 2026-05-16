@@ -10,9 +10,9 @@ export class PlaywrightService {
 
     try {
       if (apiKey && process.env.BROWSER_MODE !== "local") {
-        const wsEndpoint = `wss://production-sfo.browserless.io?token=${apiKey}`;
+        const wsEndpoint = `wss://production.browserless.io?token=${apiKey}`;
         console.log("🌐 [Browserless] Connecting to remote cloud browser...");
-        return await chromium.connectOverCDP(wsEndpoint, { timeout: 5000 });
+        return await chromium.connectOverCDP(wsEndpoint, { timeout: 10000 });
       }
     } catch (error: any) {
       console.warn(`⚠️ [Browserless] Connection failed: ${error.message}. Falling back to local browser...`);
@@ -167,8 +167,8 @@ export class PlaywrightService {
               break;
             case "click":
               addLog(`Clicking ${selector}`);
-              await page.locator(selector).click();
-              await page.waitForLoadState("networkidle").catch(() => {});
+              await page.locator(selector).click({ timeout: 15000 });
+              // Removed networkidle wait as it hangs on sites with background tracking
               break;
             case "verify":
               addLog(`Verifying: ${selector}`);
