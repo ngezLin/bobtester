@@ -253,8 +253,8 @@ export class PlaywrightService {
     const apiKey = process.env.BROWSERLESS_API_KEY;
     if (!apiKey) return "";
     
-    // Browserless Debugger URL with auto-navigation
-    // The user can use the 'Recorder' tab inside the debugger
-    return `https://chrome.browserless.io/debugger?token=${apiKey}&url=${encodeURIComponent(targetUrl)}`;
+    // Use the official Browserless Cloud Debugger/Editor URL
+    // Note: We use the root path '/' since '/debugger' is not a valid endpoint on the shared cloud domain and causes Nginx 502 errors.
+    return `https://chrome.browserless.io/?token=${apiKey}`;
   }
 }
