@@ -86,7 +86,9 @@ export default function CasesPage() {
           <div className="flex justify-between items-center mb-10">
             <div>
               <h1 className="text-3xl font-bold">My Test Cases</h1>
-              <p className="text-gray-400 mt-2">Manage your recorded flows and automation suites</p>
+              <p className="text-gray-400 mt-2">
+                Manage your recorded flows and automation suites
+              </p>
             </div>
             <Link
               href="/record"
@@ -108,8 +110,12 @@ export default function CasesPage() {
           ) : cases.length === 0 ? (
             <div className="bg-gray-900 border border-gray-800 rounded-3xl p-20 text-center">
               <div className="text-5xl mb-6 opacity-30 text-gray-400">📝</div>
-              <h2 className="text-2xl font-bold text-gray-300 mb-2">No test cases found</h2>
-              <p className="text-gray-500 mb-8">Start by recording your first browser flow.</p>
+              <h2 className="text-2xl font-bold text-gray-300 mb-2">
+                No test cases found
+              </h2>
+              <p className="text-gray-500 mb-8">
+                Start by recording your first browser flow.
+              </p>
               <Link
                 href="/record"
                 className="inline-block bg-gray-800 hover:bg-gray-700 text-white px-8 py-3 rounded-xl font-bold transition-all"
@@ -129,27 +135,45 @@ export default function CasesPage() {
                       🌐
                     </div>
                     <div className="flex flex-col items-end gap-2">
-                      <span className="text-xs text-gray-500 font-mono">#{testCase.id}</span>
+                      <span className="text-xs text-gray-500 font-mono">
+                        #{testCase.id}
+                      </span>
+
                       <button
                         onClick={() => handleDeleteCase(testCase.id)}
-                        className="text-gray-600 hover:text-red-500 transition-colors p-1"
                         title="Delete Case"
+                        className="
+                        flex items-center gap-1
+                        rounded-lg
+                        px-2 py-1.5
+                        text-sm font-medium
+                        text-gray-600
+                        hover:bg-red-50 hover:text-red-500
+                        active:scale-95
+                        transition-all duration-200
+                        focus:outline-none
+                        focus:ring-2 focus:ring-red-300
+                      "
                       >
-                        🗑️
+                        <span className="text-base">🗑️</span>
                       </button>
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold mb-2 truncate">{testCase.name}</h3>
-                  <p className="text-sm text-gray-500 mb-6 truncate">{testCase.target_url}</p>
-                  
+                  <h3 className="text-xl font-bold mb-2 truncate">
+                    {testCase.name}
+                  </h3>
+                  <p className="text-sm text-gray-500 mb-6 truncate">
+                    {testCase.target_url}
+                  </p>
+
                   <div className="flex gap-2">
-                    <Link 
+                    <Link
                       href={`/cases/${testCase.id}/config`}
                       className="flex-1 bg-gray-800 hover:bg-gray-700 text-sm font-bold py-2 rounded-lg transition-all text-center"
                     >
                       Config
                     </Link>
-                    <button 
+                    <button
                       onClick={() => handleOpenRunModal(testCase)}
                       className="flex-1 bg-emerald-600/10 text-emerald-500 hover:bg-emerald-600 hover:text-white text-sm font-bold py-2 rounded-lg transition-all"
                     >
@@ -167,10 +191,14 @@ export default function CasesPage() {
           <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-gray-900 border border-gray-800 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="p-8 border-b border-gray-800 bg-gray-800/30">
-                <h2 className="text-xl font-bold">Execute: {selectedCase.name}</h2>
-                <p className="text-gray-400 mt-1">Select a data set (asset) to run this test</p>
+                <h2 className="text-xl font-bold">
+                  Execute: {selectedCase.name}
+                </h2>
+                <p className="text-gray-400 mt-1">
+                  Select a data set (asset) to run this test
+                </p>
               </div>
-              
+
               <div className="p-8 space-y-4">
                 <button
                   onClick={() => handleExecuteRun(null)}
@@ -179,9 +207,13 @@ export default function CasesPage() {
                 >
                   <div>
                     <p className="font-bold">No Asset (Default)</p>
-                    <p className="text-xs text-gray-500">Run with recorded values only</p>
+                    <p className="text-xs text-gray-500">
+                      Run with recorded values only
+                    </p>
                   </div>
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">▶️</span>
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                    ▶️
+                  </span>
                 </button>
 
                 {caseAssets.map((asset: any) => (
@@ -194,10 +226,14 @@ export default function CasesPage() {
                     <div>
                       <p className="font-bold">{asset.name}</p>
                       <p className="text-xs text-gray-500">
-                        {asset.is_negative ? "Negative Test Case" : "Positive Test Case"}
+                        {asset.is_negative
+                          ? "Negative Test Case"
+                          : "Positive Test Case"}
                       </p>
                     </div>
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">▶️</span>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      ▶️
+                    </span>
                   </button>
                 ))}
               </div>

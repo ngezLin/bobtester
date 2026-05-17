@@ -7,7 +7,8 @@ import supabase from "../db";
 export class PlaywrightService {
   static async launchBrowser(): Promise<Browser> {
     const apiKey = process.env.BROWSERLESS_API_KEY;
-    const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+    const isProduction =
+      process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
 
     if (apiKey) {
       const wsEndpoint = `wss://chrome.browserless.io?token=${apiKey}`;
@@ -17,20 +18,28 @@ export class PlaywrightService {
       } catch (error: any) {
         console.error(`❌ [Browserless] Connection failed: ${error.message}`);
         if (isProduction) {
-          throw new Error("Cloud browser connection failed in production. Please check your BROWSERLESS_API_KEY.");
+          throw new Error(
+            "Cloud browser connection failed in production. Please check your BROWSERLESS_API_KEY.",
+          );
         }
       }
     }
 
     if (isProduction) {
-      throw new Error("BROWSERLESS_API_KEY is missing. Cloud browser is required for production execution.");
+      throw new Error(
+        "BROWSERLESS_API_KEY is missing. Cloud browser is required for production execution.",
+      );
     }
 
     console.log("💻 [Playwright] Launching local browser...");
     return await chromium.launch({ headless: true });
   }
 
-  static async takeScreenshot(page: Page, testRunId: number, name: string): Promise<string | undefined> {
+  static async takeScreenshot(
+    page: Page,
+    testRunId: number,
+    name: string,
+  ): Promise<string | undefined> {
     try {
       // Capture screenshot in-memory as a Buffer
       const buffer = await page.screenshot({ type: "png", timeout: 5000 });
@@ -47,8 +56,13 @@ export class PlaywrightService {
     testRunId: number,
     steps: any[],
     assetData: any = {},
-    caseId?: number
-  ): Promise<{ success: boolean; screenshot?: string; logs: any[]; vulnerabilities: Vulnerability[] }> {
+    caseId?: number,
+  ): Promise<{
+    success: boolean;
+    screenshot?: string;
+    logs: any[];
+    vulnerabilities: Vulnerability[];
+  }> {
     const browser = await this.launchBrowser();
     const context = await browser.newContext();
     const page = await context.newPage();
@@ -57,7 +71,7 @@ export class PlaywrightService {
     let screenshotPath: string | undefined;
     let success = true;
     let currentStepIndex = 0;
-    
+
     // Robustness: If steps is a string (due to previous double-stringification), parse it
     if (typeof steps === "string") {
       try {
@@ -84,11 +98,14 @@ export class PlaywrightService {
     }
 
     // --- Security Listeners ---
-    
+
     // 1. XSS Sniffer (Dialogs)
-    page.on("dialog", async dialog => {
+    page.on("dialog", async (dialog) => {
       const message = dialog.message();
-      addLog(`Security Alert: Unexpected dialog detected! Content: "${message}"`, "warn");
+      addLog(
+        `Security Alert: Unexpected dialog detected! Content: "${message}"`,
+        "warn",
+      );
       security.addVulnerability({
         type: "Cross-Site Scripting (XSS)",
         severity: "HIGH",
@@ -99,12 +116,16 @@ export class PlaywrightService {
     });
 
     // 2. XSS Sniffer (Console)
-    page.on("console", msg => {
+    page.on("console", (msg) => {
       const text = msg.text();
       // Look for common XSS probe patterns or "BOB_XSS" token
-      if (text.includes("XSS") || text.includes("BOB_") || msg.type() === "error") {
+      if (
+        text.includes("XSS") ||
+        text.includes("BOB_") ||
+        msg.type() === "error"
+      ) {
         if (text.includes("BOB_")) {
-           security.addVulnerability({
+          security.addVulnerability({
             type: "Cross-Site Scripting (XSS)",
             severity: "HIGH",
             evidence: `Found XSS probe token in console: "${text}"`,
@@ -115,12 +136,12 @@ export class PlaywrightService {
     });
 
     // 3. Response Scanner (SQLi & Headers)
-    page.on("response", async response => {
+    page.on("response", async (response) => {
       try {
         const url = response.url();
         const status = response.status();
         const headers = response.headers();
-        
+
         // Skip large files or non-text responses for body scanning
         const contentType = headers["content-type"] || "";
         let body = "";
@@ -139,7 +160,7 @@ export class PlaywrightService {
 
       for (const step of steps) {
         let { action, selector, value } = step;
-        
+
         // Clean up internal:role selectors to standard Playwright role selectors
         if (selector && selector.includes("internal:role=")) {
           selector = selector.replace("internal:role=", "role=");
@@ -147,14 +168,16 @@ export class PlaywrightService {
         }
 
         const stepStartTime = Date.now();
-        
+
         // Parameter substitution: replace [varName] with assetData.varName
         let finalValue = value;
         if (value && value.includes("[") && value.includes("]")) {
           const varName = value.match(/\[(.*?)\]/)?.[1];
           if (varName && assetData[varName] !== undefined) {
             finalValue = value.replace(`[${varName}]`, assetData[varName]);
-            addLog(`Substituted variable [${varName}] with provided asset data`);
+            addLog(
+              `Substituted variable [${varName}] with provided asset data`,
+            );
           }
         }
 
@@ -162,7 +185,10 @@ export class PlaywrightService {
           switch (action) {
             case "goto":
               addLog(`Navigating to ${finalValue}`);
-              await page.goto(finalValue, { waitUntil: "domcontentloaded", timeout: 30000 });
+              await page.goto(finalValue, {
+                waitUntil: "domcontentloaded",
+                timeout: 30000,
+              });
               break;
             case "fill":
               addLog(`Filling ${selector} with security payload or value`);
@@ -179,12 +205,14 @@ export class PlaywrightService {
                 const expectedUrl = selector.replace("url:", "").trim();
                 const currentUrl = page.url();
                 if (!currentUrl.includes(expectedUrl)) {
-                  throw new Error(`URL verification failed. Expected to contain: ${expectedUrl}, but got: ${currentUrl}`);
+                  throw new Error(
+                    `URL verification failed. Expected to contain: ${expectedUrl}, but got: ${currentUrl}`,
+                  );
                 }
               } else if (selector.startsWith("text:")) {
                 const fullText = selector.replace("text:", "").trim();
                 const parts = fullText.split("|").map((p: string) => p.trim());
-                
+
                 let found = false;
                 for (const part of parts) {
                   try {
@@ -199,13 +227,19 @@ export class PlaywrightService {
                 }
 
                 if (!found) {
-                  throw new Error(`Verification failed: None of the text options [${parts.join(", ")}] were found.`);
+                  throw new Error(
+                    `Verification failed: None of the text options [${parts.join(", ")}] were found.`,
+                  );
                 }
               } else {
                 const locator = page.locator(selector);
-                await locator.waitFor({ state: "visible", timeout: 5000 }).catch(() => {
-                  throw new Error(`Verification failed: Selector "${selector}" not found or not visible.`);
-                });
+                await locator
+                  .waitFor({ state: "visible", timeout: 5000 })
+                  .catch(() => {
+                    throw new Error(
+                      `Verification failed: Selector "${selector}" not found or not visible.`,
+                    );
+                  });
               }
               addLog(`Verification successful: ${selector}`);
               break;
@@ -215,12 +249,20 @@ export class PlaywrightService {
 
           const stepDuration = Date.now() - stepStartTime;
           if (finalValue) {
-            security.analyzePayloadImpact(action, finalValue, stepDuration, true, currentStepIndex);
+            security.analyzePayloadImpact(
+              action,
+              finalValue,
+              stepDuration,
+              true,
+              currentStepIndex,
+            );
           }
-
         } catch (stepError: any) {
-           addLog(`Step ${currentStepIndex + 1} failed: ${stepError.message}`, "warn");
-           throw stepError;
+          addLog(
+            `Step ${currentStepIndex + 1} failed: ${stepError.message}`,
+            "warn",
+          );
+          throw stepError;
         }
 
         currentStepIndex++;
@@ -236,18 +278,18 @@ export class PlaywrightService {
       await browser.close();
     }
 
-    return { 
-      success, 
-      screenshot: screenshotPath, 
-      logs, 
-      vulnerabilities: security.getVulnerabilities() 
+    return {
+      success,
+      screenshot: screenshotPath,
+      logs,
+      vulnerabilities: security.getVulnerabilities(),
     };
   }
 
   static getCloudRecorderUrl(targetUrl: string): string {
     const apiKey = process.env.BROWSERLESS_API_KEY;
     if (!apiKey) return "";
-    
+
     // Direct the user to their secure Browserless account dashboard where all playgrounds (BaaS Debugger, Code Generator) are hosted.
     // This avoids Nginx 502 asset loading errors on the shared chrome.browserless.io/debugger/ domain.
     return "https://browserless.io/account";
