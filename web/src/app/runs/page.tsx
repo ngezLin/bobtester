@@ -219,7 +219,13 @@ export default function RunsPage() {
                     {selectedRun.screenshot_path ? (
                       <div className="rounded-2xl overflow-hidden border-4 border-gray-800 shadow-2xl relative group">
                         <img
-                          src={`http://localhost:4000/${selectedRun.screenshot_path}`}
+                          src={
+                            selectedRun.screenshot_path.startsWith("data:")
+                              ? selectedRun.screenshot_path
+                              : selectedRun.screenshot_path.startsWith("http")
+                              ? selectedRun.screenshot_path
+                              : `${typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:4000" : "https://bobtester-u9xe.vercel.app"}/${selectedRun.screenshot_path}`
+                          }
                           alt="Run Screenshot"
                           className="w-full h-auto cursor-zoom-in"
                         />

@@ -31,17 +31,12 @@ export class PlaywrightService {
   }
 
   static async takeScreenshot(page: Page, testRunId: number, name: string): Promise<string | undefined> {
-    const fileName = `run-${testRunId}-${name}-${Date.now()}.png`;
-    const storagePath = path.join(process.cwd(), "storage", "screenshots", fileName);
-    
     try {
-      if (!fs.existsSync(path.dirname(storagePath))) {
-        fs.mkdirSync(path.dirname(storagePath), { recursive: true });
-      }
-
-      // Use a shorter timeout for screenshots so they don't block the result
-      await page.screenshot({ path: storagePath, timeout: 5000 });
-      return `storage/screenshots/${fileName}`;
+      // Capture screenshot in-memory as a Buffer
+      const buffer = await page.screenshot({ type: "png", timeout: 5000 });
+      // Convert to Base64 Data URI
+      const base64 = buffer.toString("base64");
+      return `data:image/png;base64,${base64}`;
     } catch (e: any) {
       console.warn(`⚠️ [Playwright] Failed to take screenshot: ${e.message}`);
       return undefined;
