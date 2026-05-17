@@ -16,26 +16,28 @@ function RecordPageContent() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [folder, setFolder] = useState("General");
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [recorderMode, setRecorderMode] = useState<"local" | "cloud">("local");
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProjectId = searchParams.get("project_id");
 
   useEffect(() => {
     fetchProjects();
-    
-    // Check if running in production (not localhost)
-    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
+  }, []);
+
+  useEffect(() => {
+    if (recorderMode === "cloud") {
       setMessage({ 
-        text: "🚀 Cloud Recorder Mode: Since BobTester is hosted in the cloud, recording will launch a remote browser session on Browserless.io.", 
+        text: "🚀 Cloud Recorder Mode: Click 'Start Recording' to open your Browserless.io Dashboard. In the left sidebar under 'Tools', click 'Code Generator' to easily record actions and copy the Playwright JS code directly from their secure platform!", 
         type: "info" 
       });
     } else {
       setMessage({
-        text: "💻 Local Recorder Mode: Since BobTester is running locally, recording will launch a Playwright browser window on your desktop.",
+        text: "💻 Local Desktop Recorder Mode: Since BobTester is running locally, recording will launch a Playwright browser window on your desktop. Perform your actions there, and close the browser when you are finished.",
         type: "info"
       });
     }
-  }, []);
+  }, [recorderMode]);
 
   const fetchProjects = async () => {
     try {
@@ -58,12 +60,40 @@ function RecordPageContent() {
     setIsRecording(true);
     setMessage({ text: "Opening recorder...", type: "info" });
     try {
-      const response = await caseService.recordCase(url);
-      
+      let response;
+      if (recorderMode === "local") {
+        // Direct request to local backend to trigger local Playwright codegen browser on user's computer!
+        const localApiUrl = "http://localhost:4000/api/cases/record";
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        
+        let res;
+        try {
+          res = await fetch(localApiUrl, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ url, mode: "local" }),
+          });
+        } catch (fetchErr) {
+          throw new Error("Local backend is not running. Please make sure you run 'npm run dev' on your local BobTester backend (localhost:4000) first!");
+        }
+        
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.message || "Failed to trigger local recorder.");
+        }
+        
+        response = await res.json();
+      } else {
+        response = await caseService.recordCase(url, "cloud");
+      }
+
       if (response.isCloud && response.cloudUrl) {
         window.open(response.cloudUrl, "_blank");
         setMessage({ 
-          text: "🚀 Cloud Recorder opened in a new tab! 1. In the Browserless window, select the 'Recorder' tab. 2. Enter your URL and perform your actions. 3. Copy the generated Playwright code and paste it below.", 
+          text: "🚀 Browserless Dashboard opened in a new tab! 1. In the left sidebar of your Browserless window, select 'Code Generator' (under Tools). 2. Input your URL and record your interactions. 3. Copy the generated Playwright code and paste it below.", 
           type: "success" 
         });
       } else {
@@ -178,6 +208,30 @@ function RecordPageContent() {
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-10 h-10 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">1</div>
                 <h2 className="text-xl font-bold">Launch Recorder</h2>
+              </div>
+              
+              {/* Mode Selection */}
+              <div className="flex gap-4 mb-6 bg-gray-950 p-1.5 rounded-2xl border border-gray-800">
+                <button
+                  onClick={() => setRecorderMode("local")}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                    recorderMode === "local"
+                      ? "bg-rose-600 text-white shadow-lg"
+                      : "text-gray-400 hover:text-white hover:bg-gray-900"
+                  }`}
+                >
+                  💻 Local Desktop Recorder
+                </button>
+                <button
+                  onClick={() => setRecorderMode("cloud")}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                    recorderMode === "cloud"
+                      ? "bg-rose-600 text-white shadow-lg"
+                      : "text-gray-400 hover:text-white hover:bg-gray-900"
+                  }`}
+                >
+                  🚀 Browserless Cloud Recorder
+                </button>
               </div>
               
               <div className="flex gap-4">

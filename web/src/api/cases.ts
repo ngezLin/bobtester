@@ -6,5 +6,5 @@ export const caseService = {
   createCase: (data: any) => api.post("/cases", data),
   updateCase: (id: string | number, data: any) => api.put(`/cases/${id}`, data),
   deleteCase: (id: string | number) => api.delete(`/cases/${id}`),
-  recordCase: (url: string) => api.post("/cases/record", { url }),
+  recordCase: (url: string, mode?: string) => api.post("/cases/record", { url, mode }),
 };

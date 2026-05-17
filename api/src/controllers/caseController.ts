@@ -270,9 +270,9 @@ export class CaseController {
   static async record(req: AuthRequest, res: Response) {
     console.log("[record] Request received");
 
-    const { url } = req.body;
+    const { url, mode } = req.body;
 
-    console.log("[record] URL:", url);
+    console.log(`[record] URL: ${url}, Mode: ${mode}`);
 
     if (!url) {
       console.warn("[record] URL is missing");
@@ -287,10 +287,12 @@ export class CaseController {
       `[Record Request] URL: ${url}, VERCEL: ${process.env.VERCEL}, NODE_ENV: ${process.env.NODE_ENV}`,
     );
 
-    const isCloudEnvironment =
-      process.env.VERCEL || process.env.NODE_ENV === "production";
+    // If we are on Vercel or in production, we MUST use Cloud Recorder (no local GUI available).
+    // Otherwise, we use Cloud Recorder if requested or if BROWSERLESS_TEST=true is set (unless mode is explicitly set to local).
+    const isProduction = process.env.VERCEL || process.env.NODE_ENV === "production";
+    const useCloud = isProduction || (mode === "cloud") || (process.env.BROWSERLESS_TEST === "true" && mode !== "local");
 
-    if (isCloudEnvironment) {
+    if (useCloud) {
       const cloudUrl = PlaywrightService.getCloudRecorderUrl(url);
       return res.json({
         success: true,

@@ -253,10 +253,8 @@ export class PlaywrightService {
     const apiKey = process.env.BROWSERLESS_API_KEY;
     if (!apiKey) return "";
     
-    // Use the official Browserless Cloud Debugger URL.
-    // Note: The path MUST end with a trailing slash '/debugger/' to route correctly. 
-    // Omitting the trailing slash (e.g. '/debugger') causes Nginx 502 Bad Gateway, 
-    // and the root path '/' causes a 'No route or file found' error on the Browserless SaaS API.
-    return `https://chrome.browserless.io/debugger/?token=${apiKey}`;
+    // Direct the user to their secure Browserless account dashboard where all playgrounds (BaaS Debugger, Code Generator) are hosted.
+    // This avoids Nginx 502 asset loading errors on the shared chrome.browserless.io/debugger/ domain.
+    return "https://browserless.io/account";
   }
 }
