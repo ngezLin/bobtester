@@ -26,8 +26,13 @@ function RecordPageContent() {
     // Check if running in production (not localhost)
     if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
       setMessage({ 
-        text: "⚠️ Note: Recording tests only works when running BobTester on your local machine (localhost). It is disabled on the live cloud version.", 
+        text: "🚀 Cloud Recorder Mode: Since BobTester is hosted in the cloud, recording will launch a remote browser session on Browserless.io.", 
         type: "info" 
+      });
+    } else {
+      setMessage({
+        text: "💻 Local Recorder Mode: Since BobTester is running locally, recording will launch a Playwright browser window on your desktop.",
+        type: "info"
       });
     }
   }, []);
@@ -58,7 +63,7 @@ function RecordPageContent() {
       if (response.isCloud && response.cloudUrl) {
         window.open(response.cloudUrl, "_blank");
         setMessage({ 
-          text: "🚀 Cloud Recorder opened in a new tab! 1. Perform your actions there. 2. Go to the 'Recorder' tab in that window. 3. Copy the Playwright code and paste it below.", 
+          text: "🚀 Cloud Recorder opened in a new tab! 1. In the Browserless window, select the 'Recorder' tab. 2. Enter your URL and perform your actions. 3. Copy the generated Playwright code and paste it below.", 
           type: "success" 
         });
       } else {

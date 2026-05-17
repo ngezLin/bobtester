@@ -27,13 +27,13 @@ export class ScanController {
         checks,
       };
 
-      createScanJob(scanId, payload);
+      await createScanJob(scanId, payload);
 
       const timeoutMs = 10 * 60 * 1000; // 10 minutes
-      const timeoutHandle = setTimeout(() => {
-        const job = getScanJob(scanId);
+      const timeoutHandle = setTimeout(async () => {
+        const job = await getScanJob(scanId);
         if (job && job.status === "Running") {
-          updateScanJob(scanId, {
+          await updateScanJob(scanId, {
             status: "Failed",
             error: "Scan timed out after 10 minutes.",
           });
@@ -41,24 +41,24 @@ export class ScanController {
       }, timeoutMs);
 
       processScanJob(payload)
-        .then((result) => {
+        .then(async (result) => {
           clearTimeout(timeoutHandle);
-          const job = getScanJob(scanId);
+          const job = await getScanJob(scanId);
           if (!job || job.status !== "Running") return;
 
-          updateScanJob(scanId, {
+          await updateScanJob(scanId, {
             status: "Completed",
             report: result.report,
             findings: result.findings,
           });
         })
-        .catch((error: any) => {
+        .catch(async (error: any) => {
           clearTimeout(timeoutHandle);
-          const job = getScanJob(scanId);
+          const job = await getScanJob(scanId);
           if (!job || job.status !== "Running") return;
 
           console.error(`Scan job ${scanId} failed:`, error);
-          updateScanJob(scanId, {
+          await updateScanJob(scanId, {
             status: "Failed",
             error: error?.message ?? "Scan failed",
           });
@@ -81,7 +81,7 @@ export class ScanController {
 
   static async getScanById(req: Request, res: Response) {
     const scanId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const job = getScanJob(scanId);
+    const job = await getScanJob(scanId);
 
     if (!job) {
       return res.status(404).json({
@@ -104,7 +104,7 @@ export class ScanController {
 
   static async terminateScan(req: Request, res: Response) {
     const scanId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const job = getScanJob(scanId);
+    const job = await getScanJob(scanId);
 
     if (!job) {
       return res.status(404).json({
@@ -121,7 +121,7 @@ export class ScanController {
       });
     }
 
-    const canceledJob = cancelScanJob(scanId, "Scan was terminated by the user.");
+    const canceledJob = await cancelScanJob(scanId, "Scan was terminated by the user.");
 
     return res.json({
       success: true,
