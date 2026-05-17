@@ -287,10 +287,10 @@ export class CaseController {
       `[Record Request] URL: ${url}, VERCEL: ${process.env.VERCEL}, NODE_ENV: ${process.env.NODE_ENV}`,
     );
 
-    // If we are on Vercel or in production, we MUST use Cloud Recorder (no local GUI available).
-    // Otherwise, we use Cloud Recorder if requested or if BROWSERLESS_TEST=true is set (unless mode is explicitly set to local).
-    const isProduction = process.env.VERCEL || process.env.NODE_ENV === "production";
-    const useCloud = isProduction || (mode === "cloud") || (process.env.BROWSERLESS_TEST === "true" && mode !== "local");
+    // Use cloud only if specifically requested or if BROWSERLESS_TEST=true,
+    // AND if the user didn't explicitly select "local".
+    // This allows testing if Vercel serverless function can execute 'npx playwright codegen' in production!
+    const useCloud = mode !== "local" && (process.env.VERCEL || process.env.NODE_ENV === "production" || mode === "cloud" || process.env.BROWSERLESS_TEST === "true");
 
     if (useCloud) {
       const cloudUrl = PlaywrightService.getCloudRecorderUrl(url);

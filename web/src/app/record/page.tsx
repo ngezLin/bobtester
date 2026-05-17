@@ -60,35 +60,7 @@ function RecordPageContent() {
     setIsRecording(true);
     setMessage({ text: "Opening recorder...", type: "info" });
     try {
-      let response;
-      if (recorderMode === "local") {
-        // Direct request to local backend to trigger local Playwright codegen browser on user's computer!
-        const localApiUrl = "http://localhost:4000/api/cases/record";
-        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-        
-        let res;
-        try {
-          res = await fetch(localApiUrl, {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ url, mode: "local" }),
-          });
-        } catch (fetchErr) {
-          throw new Error("Local backend is not running. Please make sure you run 'npm run dev' on your local BobTester backend (localhost:4000) first!");
-        }
-        
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.message || "Failed to trigger local recorder.");
-        }
-        
-        response = await res.json();
-      } else {
-        response = await caseService.recordCase(url, "cloud");
-      }
+      const response = await caseService.recordCase(url, recorderMode);
 
       if (response.isCloud && response.cloudUrl) {
         window.open(response.cloudUrl, "_blank");
