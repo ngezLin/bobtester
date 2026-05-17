@@ -94,8 +94,6 @@ function translateJsonToPlaywright(jsonString: string): string {
 }
 
 function RecordPageContent() {
-  const [url, setUrl] = useState("https://example.com");
-  const [isRecording, setIsRecording] = useState(false);
   const [caseName, setCaseName] = useState("");
   const [rawCode, setRawCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -103,7 +101,6 @@ function RecordPageContent() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [folder, setFolder] = useState("General");
   const [message, setMessage] = useState({ text: "", type: "" });
-  const [recorderMode, setRecorderMode] = useState<"local" | "cloud">("local");
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProjectId = searchParams.get("project_id");
@@ -125,20 +122,6 @@ function RecordPageContent() {
     fetchProjects();
   }, []);
 
-  useEffect(() => {
-    if (recorderMode === "cloud") {
-      setMessage({ 
-        text: "🚀 Cloud Recorder Mode: Click 'Start Recording' to open your Browserless.io Dashboard. In the left sidebar under 'Tools', click 'Code Generator' to easily record actions and copy the Playwright JS code directly from their secure platform!", 
-        type: "info" 
-      });
-    } else {
-      setMessage({
-        text: "💻 Local Desktop Recorder Mode: Since BobTester is running locally, recording will launch a Playwright browser window on your desktop. Perform your actions there, and close the browser when you are finished.",
-        type: "info"
-      });
-    }
-  }, [recorderMode]);
-
   const fetchProjects = async () => {
     try {
       const res = await projectService.getProjects();
@@ -153,27 +136,6 @@ function RecordPageContent() {
       }
     } catch (error) {
       console.error("Failed to fetch projects", error);
-    }
-  };
-
-  const handleStartRecording = async () => {
-    setIsRecording(true);
-    setMessage({ text: "Opening recorder...", type: "info" });
-    try {
-      const response = await caseService.recordCase(url, recorderMode);
-
-      if (response.isCloud && response.cloudUrl) {
-        window.open(response.cloudUrl, "_blank");
-        setMessage({ 
-          text: "🚀 Browserless Dashboard opened in a new tab! 1. In the left sidebar of your Browserless window, select 'Code Generator' (under Tools). 2. Input your URL and record your interactions. 3. Copy the generated Playwright code and paste it below.", 
-          type: "success" 
-        });
-      } else {
-        setMessage({ text: "Recorder opened. Perform your actions, then copy the code here.", type: "success" });
-      }
-    } catch (err: any) {
-      setMessage({ text: err.message || "Failed to start recorder", type: "error" });
-      setIsRecording(false);
     }
   };
 
@@ -241,11 +203,13 @@ function RecordPageContent() {
 
     setLoading(true);
     const steps = parseSteps(rawCode);
+    const gotoStep = steps.find((s) => s.action === "goto");
+    const targetUrl = gotoStep && typeof gotoStep.value === "string" ? gotoStep.value : "https://example.com";
 
     try {
       const data = await caseService.createCase({
         name: caseName,
-        target_url: url,
+        target_url: targetUrl,
         steps: steps,
         project_id: selectedProjectId ? parseInt(selectedProjectId) : null,
         folder: folder || "General",
@@ -271,61 +235,49 @@ function RecordPageContent() {
         <div className="max-w-4xl mx-auto">
           <header className="mb-10">
             <h1 className="text-3xl font-bold">Record New Flow</h1>
-            <p className="text-gray-400 mt-2">Use Playwright Codegen to record your browser interactions</p>
+            <p className="text-gray-400 mt-2">Record, translate, and configure QA test scenarios client-side</p>
           </header>
 
           <div className="grid gap-8">
-            {/* Step 1: Start Recording */}
+            {/* Step 1: Record Guide */}
             <section className="bg-gray-900 border border-gray-800 rounded-3xl p-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-10 h-10 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">1</div>
-                <h2 className="text-xl font-bold">Launch Recorder</h2>
+                <h2 className="text-xl font-bold">How to Record Tests (Built-in Chrome Recorder)</h2>
               </div>
               
-              {/* Mode Selection */}
-              <div className="flex gap-4 mb-6 bg-gray-950 p-1.5 rounded-2xl border border-gray-800">
-                <button
-                  onClick={() => setRecorderMode("local")}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                    recorderMode === "local"
-                      ? "bg-rose-600 text-white shadow-lg"
-                      : "text-gray-400 hover:text-white hover:bg-gray-900"
-                  }`}
-                >
-                  💻 Local Desktop Recorder
-                </button>
-                <button
-                  onClick={() => setRecorderMode("cloud")}
-                  className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                    recorderMode === "cloud"
-                      ? "bg-rose-600 text-white shadow-lg"
-                      : "text-gray-400 hover:text-white hover:bg-gray-900"
-                  }`}
-                >
-                  🚀 Browserless Cloud Recorder
-                </button>
+              <p className="text-gray-400 mb-6 text-sm leading-relaxed">
+                You can record your browser flows completely client-side inside your own browser using your own computer's RAM, with absolutely zero setup or extensions required!
+              </p>
+
+              <div className="grid md:grid-cols-3 gap-6">
+                <div className="bg-gray-950 p-6 rounded-2xl border border-gray-800 flex flex-col gap-3">
+                  <div className="text-2xl">🛠️</div>
+                  <h3 className="font-bold text-sm text-white">1. Open DevTools</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Open a new tab in Google Chrome, go to the website you want to test, and press <kbd className="bg-gray-800 px-1.5 py-0.5 rounded text-[10px] text-gray-300 font-mono">F12</kbd> (or right-click and choose <strong>Inspect</strong>).
+                  </p>
+                </div>
+
+                <div className="bg-gray-950 p-6 rounded-2xl border border-gray-800 flex flex-col gap-3">
+                  <div className="text-2xl">⏺️</div>
+                  <h3 className="font-bold text-sm text-white">2. Start Recording</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Click the double-arrows <span className="bg-gray-800 px-1 py-0.5 rounded text-[10px] text-gray-300 font-mono">»</span> at the top of DevTools, select <strong>Recorder</strong>, and click <strong>"Create a new recording"</strong> to record your flow!
+                  </p>
+                </div>
+
+                <div className="bg-gray-950 p-6 rounded-2xl border border-gray-800 flex flex-col gap-3">
+                  <div className="text-2xl">📋</div>
+                  <h3 className="font-bold text-sm text-white">3. Export & Copy</h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    When finished, click <strong>"End recording"</strong>. Click the <strong>Export icon</strong> (arrow pointing up) on the top bar, select <strong>JSON</strong>, and copy/paste that JSON below!
+                  </p>
+                </div>
               </div>
-              
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="https://example.com"
-                />
-                <button
-                  onClick={handleStartRecording}
-                  disabled={isRecording}
-                  className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2"
-                >
-                  <span className={isRecording ? "animate-pulse" : ""}>⏺️</span>
-                  {isRecording ? "Recording..." : "Start Recording"}
-                </button>
-              </div>
-              
+
               {message.text && (
-                <div className={`mt-4 p-4 rounded-xl text-sm ${
+                <div className={`mt-6 p-4 rounded-xl text-sm ${
                   message.type === "error" ? "bg-red-500/10 text-red-400 border border-red-500/20" : 
                   message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : 
                   "bg-blue-500/10 text-blue-400 border border-blue-500/20"
@@ -336,7 +288,7 @@ function RecordPageContent() {
             </section>
 
             {/* Step 2: Paste and Save */}
-            <section className={`bg-gray-900 border border-gray-800 rounded-3xl p-8 transition-opacity ${!isRecording && "opacity-50 pointer-events-none"}`}>
+            <section className="bg-gray-900 border border-gray-800 rounded-3xl p-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-10 h-10 bg-blue-500/20 text-blue-500 rounded-full flex items-center justify-center font-bold">2</div>
                 <h2 className="text-xl font-bold">Save Actions</h2>
