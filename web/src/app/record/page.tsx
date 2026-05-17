@@ -6,6 +6,34 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { caseService } from "@/api/cases";
 import { projectService } from "@/api/projects";
 
+function getBestSelector(selectors: any): string {
+  if (!selectors || !Array.isArray(selectors) || selectors.length === 0) return "";
+  
+  // Try to find a standard CSS ID selector (starts with #) or class selector (starts with .)
+  for (const sGroup of selectors) {
+    if (Array.isArray(sGroup)) {
+      const s = sGroup[0];
+      if (s && (s.startsWith("#") || s.startsWith("."))) {
+        return s;
+      }
+    }
+  }
+
+  // Fallback to finding any selector that does not contain a slash '/'
+  for (const sGroup of selectors) {
+    if (Array.isArray(sGroup)) {
+      const s = sGroup[0];
+      if (s && !s.includes("/")) {
+        return s;
+      }
+    }
+  }
+
+  // Final fallback to the very first selector
+  const first = selectors[0];
+  return Array.isArray(first) ? first[0] || "" : String(first);
+}
+
 function translateJsonToPlaywright(jsonString: string): string {
   try {
     const data = JSON.parse(jsonString);
@@ -16,6 +44,9 @@ function translateJsonToPlaywright(jsonString: string): string {
     let code = `// Automatically translated from Chrome DevTools Recorder JSON\n`;
     
     for (const step of data.steps) {
+      const rawSelector = getBestSelector(step.selectors) || step.selector;
+      const selector = rawSelector ? rawSelector.replace(/'/g, "\\'") : "";
+
       switch (step.type) {
         case "setViewport":
           code += `await page.setViewportSize({ width: ${step.width}, height: ${step.height} });\n`;
@@ -24,37 +55,32 @@ function translateJsonToPlaywright(jsonString: string): string {
           code += `await page.goto('${step.url}');\n`;
           break;
         case "click": {
-          const selector = step.selectors?.[0]?.[0] || step.selector;
           if (selector) {
-            code += `await page.click('${selector.replace(/'/g, "\\'")}');\n`;
+            code += `await page.locator('${selector}').click();\n`;
           }
           break;
         }
         case "change": {
-          const selector = step.selectors?.[0]?.[0] || step.selector;
           if (selector) {
-            code += `await page.fill('${selector.replace(/'/g, "\\'")}', '${step.value.replace(/'/g, "\\'")}');\n`;
+            code += `await page.locator('${selector}').fill('${step.value.replace(/'/g, "\\'")}');\n`;
           }
           break;
         }
         case "waitForElement": {
-          const selector = step.selectors?.[0]?.[0] || step.selector;
           if (selector) {
-            code += `await page.waitForSelector('${selector.replace(/'/g, "\\'")}');\n`;
+            code += `await page.locator('${selector}').waitFor();\n`;
           }
           break;
         }
         case "doubleClick": {
-          const selector = step.selectors?.[0]?.[0] || step.selector;
           if (selector) {
-            code += `await page.dblclick('${selector.replace(/'/g, "\\'")}');\n`;
+            code += `await page.locator('${selector}').dblclick();\n`;
           }
           break;
         }
         case "hover": {
-          const selector = step.selectors?.[0]?.[0] || step.selector;
           if (selector) {
-            code += `await page.hover('${selector.replace(/'/g, "\\'")}');\n`;
+            code += `await page.locator('${selector}').hover();\n`;
           }
           break;
         }
