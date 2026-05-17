@@ -199,7 +199,7 @@ function RecordPageContent() {
     if (!caseName || !rawCode) {
       setMessage({ text: "Please provide a name and paste the recorded code", type: "error" });
       return;
-    }
+    } //
 
     setLoading(true);
     const steps = parseSteps(rawCode);
