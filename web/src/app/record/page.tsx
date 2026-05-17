@@ -6,6 +6,67 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { caseService } from "@/api/cases";
 import { projectService } from "@/api/projects";
 
+function translateJsonToPlaywright(jsonString: string): string {
+  try {
+    const data = JSON.parse(jsonString);
+    if (!data || !Array.isArray(data.steps)) {
+      return jsonString;
+    }
+
+    let code = `// Automatically translated from Chrome DevTools Recorder JSON\n`;
+    
+    for (const step of data.steps) {
+      switch (step.type) {
+        case "setViewport":
+          code += `await page.setViewportSize({ width: ${step.width}, height: ${step.height} });\n`;
+          break;
+        case "navigate":
+          code += `await page.goto('${step.url}');\n`;
+          break;
+        case "click": {
+          const selector = step.selectors?.[0]?.[0] || step.selector;
+          if (selector) {
+            code += `await page.click('${selector.replace(/'/g, "\\'")}');\n`;
+          }
+          break;
+        }
+        case "change": {
+          const selector = step.selectors?.[0]?.[0] || step.selector;
+          if (selector) {
+            code += `await page.fill('${selector.replace(/'/g, "\\'")}', '${step.value.replace(/'/g, "\\'")}');\n`;
+          }
+          break;
+        }
+        case "waitForElement": {
+          const selector = step.selectors?.[0]?.[0] || step.selector;
+          if (selector) {
+            code += `await page.waitForSelector('${selector.replace(/'/g, "\\'")}');\n`;
+          }
+          break;
+        }
+        case "doubleClick": {
+          const selector = step.selectors?.[0]?.[0] || step.selector;
+          if (selector) {
+            code += `await page.dblclick('${selector.replace(/'/g, "\\'")}');\n`;
+          }
+          break;
+        }
+        case "hover": {
+          const selector = step.selectors?.[0]?.[0] || step.selector;
+          if (selector) {
+            code += `await page.hover('${selector.replace(/'/g, "\\'")}');\n`;
+          }
+          break;
+        }
+      }
+    }
+    
+    return code;
+  } catch (e) {
+    return jsonString;
+  }
+}
+
 function RecordPageContent() {
   const [url, setUrl] = useState("https://example.com");
   const [isRecording, setIsRecording] = useState(false);
@@ -20,6 +81,19 @@ function RecordPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProjectId = searchParams.get("project_id");
+
+  const handleCodeChange = (value: string) => {
+    if (value.trim().startsWith("{") && value.includes('"steps"')) {
+      const translated = translateJsonToPlaywright(value);
+      setRawCode(translated);
+      setMessage({
+        text: "⚡ Successfully translated Chrome DevTools Recorder JSON to Playwright JS!",
+        type: "success"
+      });
+    } else {
+      setRawCode(value);
+    }
+  };
 
   useEffect(() => {
     fetchProjects();
@@ -284,7 +358,7 @@ function RecordPageContent() {
                   <label className="block text-sm font-medium text-gray-400 mb-2">Paste Recorded Code (Playwright JS)</label>
                   <textarea
                     value={rawCode}
-                    onChange={(e) => setRawCode(e.target.value)}
+                    onChange={(e) => handleCodeChange(e.target.value)}
                     rows={10}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white font-mono text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                     placeholder="await page.goto('...')..."
