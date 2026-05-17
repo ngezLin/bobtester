@@ -8,6 +8,7 @@ export class RunController {
   static async executeRun(req: AuthRequest, res: Response) {
     const { caseId, assetId } = req.body;
     const userId = req.user?.id;
+    let testRunId: number | null = null;
 
     if (!caseId) {
       return res
@@ -55,13 +56,13 @@ export class RunController {
           .status(500)
           .json({ success: false, message: "Failed to create run record" });
       }
-      const testRunId = runResult[0].id;
+      testRunId = runResult[0].id;
 
       // 4. Execute Dynamically
       const startTime = Date.now();
       const { success, screenshot, logs, vulnerabilities } =
         await PlaywrightService.executeDynamicTest(
-          testRunId,
+          testRunId!,
           testCase.steps,
           assetData,
         );
@@ -93,6 +94,26 @@ export class RunController {
       });
     } catch (error: any) {
       console.error("Run execution error:", error);
+      
+      // Update the run status to failed if an error occurred
+      if (testRunId) {
+        await supabase
+          .from("test_runs")
+          .update({
+            status: "failed",
+            logs: JSON.stringify([{
+              timestamp: new Date().toISOString(),
+              level: "error",
+              message: error.message || "Test execution failed with an unexpected error"
+            }])
+          })
+          .eq("id", testRunId);
+      }
+      
+      res.status(500).json({
+        success: false,
+        message: error.message || "Test execution failed"
+      });
     }
   }
 

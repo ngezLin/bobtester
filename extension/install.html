@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Install BobTester Recorder Extension</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+
+        .step {
+            background: rgba(15, 23, 42, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            border-radius: 50%;
+            font-weight: bold;
+            margin-right: 12px;
+        }
+
+        .step-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+        }
+
+        .step-content {
+            color: #cbd5e1;
+            line-height: 1.6;
+            margin-left: 44px;
+        }
+
+        .button {
+            display: inline-block;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 16px 32px;
+            border-radius: 12px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 18px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: none;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+        }
+
+        .button-secondary {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            color: #3b82f6;
+        }
+
+        .button-secondary:hover {
+            background: rgba(59, 130, 246, 0.2);
+            box-shadow: 0 8px 24px rgba(59, 130, 246, 0.3);
+        }
+
+        .buttons {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .browser-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .browser-tab {
+            flex: 1;
+            padding: 12px;
+            background: rgba(15, 23, 42, 0.5);
+            border: 2px solid transparent;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .browser-tab:hover {
+            border-color: rgba(239, 68, 68, 0.5);
+        }
+
+        .browser-tab.active {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .browser-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .browser-name {
+            font-weight: 600;
+        }
+
+        .steps-container {
+            display: none;
+        }
+
+        .steps-container.active {
+            display: block;
+        }
+
+        code {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            color: #60a5fa;
+        }
+
+        .alert {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 20px;
+            color: #86efac;
+        }
+
+        .warning {
+            background: rgba(251, 191, 36, 0.1);
+            border: 1px solid rgba(251, 191, 36, 0.3);
+            color: #fcd34d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎬 Install BobTester Recorder</h1>
+        <p class="subtitle">One-click automated test recording for your browser</p>
+
+        <div class="browser-tabs">
+            <div class="browser-tab active" onclick="showBrowser('chrome')">
+                <div class="browser-icon">🌐</div>
+                <div class="browser-name">Chrome / Edge</div>
+            </div>
+            <div class="browser-tab" onclick="showBrowser('firefox')">
+                <div class="browser-icon">🦊</div>
+                <div class="browser-name">Firefox</div>
+            </div>
+        </div>
+
+        <!-- Chrome Instructions -->
+        <div id="chrome-steps" class="steps-container active">
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    Download Extension
+                </div>
+                <div class="step-content">
+                    Click the button below to download the extension as a ZIP file.
+                    <div style="margin-top: 12px;">
+                        <button class="button" onclick="downloadExtension()">📥 Download Extension ZIP</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    Extract the ZIP File
+                </div>
+                <div class="step-content">
+                    Extract the downloaded ZIP file to a permanent location on your computer (e.g., Documents/BobTester).
+                    <strong>Don't delete this folder</strong> - the extension needs it to run.
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">3</span>
+                    Open Extensions Page
+                </div>
+                <div class="step-content">
+                    Open <code>chrome://extensions/</code> in your browser, or click the button below:
+                    <div style="margin-top: 12px;">
+                        <button class="button button-secondary" onclick="openExtensionsPage('chrome')">🔧 Open Extensions Page</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    Enable Developer Mode
+                </div>
+                <div class="step-content">
+                    Toggle the "Developer mode" switch in the top-right corner of the extensions page.
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">5</span>
+                    Load the Extension
+                </div>
+                <div class="step-content">
+                    Click "Load unpacked" and select the extracted extension folder.
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">6</span>
+                    Pin to Toolbar
+                </div>
+                <div class="step-content">
+                    Click the puzzle icon in your browser toolbar and pin the BobTester Recorder extension for easy access.
+                </div>
+            </div>
+        </div>
+
+        <!-- Firefox Instructions -->
+        <div id="firefox-steps" class="steps-container">
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">1</span>
+                    Download Extension
+                </div>
+                <div class="step-content">
+                    Click the button below to download the extension as a ZIP file.
+                    <div style="margin-top: 12px;">
+                        <button class="button" onclick="downloadExtension()">📥 Download Extension ZIP</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">2</span>
+                    Extract the ZIP File
+                </div>
+                <div class="step-content">
+                    Extract the downloaded ZIP file to any location on your computer.
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">3</span>
+                    Open Debugging Page
+                </div>
+                <div class="step-content">
+                    Open <code>about:debugging#/runtime/this-firefox</code> in Firefox, or click the button below:
+                    <div style="margin-top: 12px;">
+                        <button class="button button-secondary" onclick="openExtensionsPage('firefox')">🔧 Open Debugging Page</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="step">
+                <div class="step-title">
+                    <span class="step-number">4</span>
+                    Load Temporary Add-on
+                </div>
+                <div class="step-content">
+                    Click "Load Temporary Add-on" and select the <code>manifest.json</code> file from the extracted folder.
+                </div>
+            </div>
+
+            <div class="alert warning">
+                ⚠️ <strong>Note:</strong> In Firefox, temporary add-ons are removed when you close the browser. You'll need to reload it each time you restart Firefox.
+            </div>
+        </div>
+
+        <div class="alert">
+            ✅ <strong>Done!</strong> The extension is now installed. Go to BobTester's Record page to start recording tests!
+        </div>
+
+        <div class="buttons">
+            <a href="/" class="button button-secondary">← Back to BobTester</a>
+        </div>
+    </div>
+
+    <script>
+        function showBrowser(browser) {
+            // Update tabs
+            document.querySelectorAll('.browser-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.closest('.browser-tab').classList.add('active');
+
+            // Update steps
+            document.querySelectorAll('.steps-container').forEach(steps => {
+                steps.classList.remove('active');
+            });
+            document.getElementById(browser + '-steps').classList.add('active');
+        }
+
+        function downloadExtension() {
+            // Trigger download from API endpoint
+            window.location.href = '/api/extension/download';
+        }
+
+        function openExtensionsPage(browser) {
+            if (browser === 'chrome') {
+                window.open('chrome://extensions/', '_blank');
+            } else if (browser === 'firefox') {
+                window.open('about:debugging#/runtime/this-firefox', '_blank');
+            }
+        }
+    </script>
+</body>
+</html>

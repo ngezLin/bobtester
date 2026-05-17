@@ -249,13 +249,20 @@ export class PlaywrightService {
     };
   }
 
+  /**
+   * @deprecated This method is no longer used for recording.
+   * Users now record tests locally using `npx playwright codegen` on their own devices.
+   * This eliminates the need for Browserless.io API keys and cloud browser sessions.
+   *
+   * Kept for reference only. The launchBrowser() method above is still used for test execution.
+   */
   static getCloudRecorderUrl(targetUrl: string): string {
     const apiKey = process.env.BROWSERLESS_API_KEY;
     if (!apiKey) return "";
     
     // Use the official Browserless Cloud Debugger URL.
-    // Note: The path MUST end with a trailing slash '/debugger/' to route correctly. 
-    // Omitting the trailing slash (e.g. '/debugger') causes Nginx 502 Bad Gateway, 
+    // Note: The path MUST end with a trailing slash '/debugger/' to route correctly.
+    // Omitting the trailing slash (e.g. '/debugger') causes Nginx 502 Bad Gateway,
     // and the root path '/' causes a 'No route or file found' error on the Browserless SaaS API.
     return `https://chrome.browserless.io/debugger/?token=${apiKey}`;
   }

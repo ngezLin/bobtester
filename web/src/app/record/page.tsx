@@ -6,6 +6,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { caseService } from "@/api/cases";
 import { projectService } from "@/api/projects";
 
+// Extension ID - will be set after extension is published
+const EXTENSION_ID = "YOUR_EXTENSION_ID_HERE"; // Replace with actual ID after publishing
+
 function RecordPageContent() {
   const [url, setUrl] = useState("https://example.com");
   const [isRecording, setIsRecording] = useState(false);
@@ -16,26 +19,59 @@ function RecordPageContent() {
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [folder, setFolder] = useState("General");
   const [message, setMessage] = useState({ text: "", type: "" });
+  const [extensionInstalled, setExtensionInstalled] = useState(false);
+  const [recordingMethod, setRecordingMethod] = useState<"extension" | "manual">("extension");
   const router = useRouter();
   const searchParams = useSearchParams();
   const preselectedProjectId = searchParams.get("project_id");
 
   useEffect(() => {
     fetchProjects();
-    
-    // Check if running in production (not localhost)
-    if (typeof window !== "undefined" && window.location.hostname !== "localhost") {
-      setMessage({ 
-        text: "🚀 Cloud Recorder Mode: Since BobTester is hosted in the cloud, recording will launch a remote browser session on Browserless.io.", 
-        type: "info" 
-      });
+    checkExtension();
+  }, []);
+
+  const checkExtension = () => {
+    // Check if extension is installed by trying to send a message
+    if (typeof window !== 'undefined' && window.chrome?.runtime?.sendMessage) {
+      try {
+        window.chrome.runtime.sendMessage(
+          EXTENSION_ID,
+          { type: 'GET_STATUS' },
+          (response: any) => {
+            if (window.chrome?.runtime?.lastError) {
+              setExtensionInstalled(false);
+              setRecordingMethod("manual");
+              setMessage({
+                text: "🔌 Extension not detected. Install the BobTester Recorder extension for automated recording, or use manual mode below.",
+                type: "info"
+              });
+            } else {
+              setExtensionInstalled(true);
+              setRecordingMethod("extension");
+              setMessage({
+                text: "✅ BobTester Recorder extension detected! Click 'Start Recording' to begin.",
+                type: "success"
+              });
+            }
+          }
+        );
+      } catch (e) {
+        setExtensionInstalled(false);
+        setRecordingMethod("manual");
+        setMessage({
+          text: "💻 Manual Recording Mode: Follow the instructions below to record your test using Playwright on your device.",
+          type: "info"
+        });
+      }
     } else {
+      setExtensionInstalled(false);
+      setRecordingMethod("manual");
       setMessage({
-        text: "💻 Local Recorder Mode: Since BobTester is running locally, recording will launch a Playwright browser window on your desktop.",
+        text: "💻 Manual Recording Mode: Follow the instructions below to record your test using Playwright on your device.",
         type: "info"
       });
     }
-  }, []);
+  };
 
   const fetchProjects = async () => {
     try {
@@ -55,24 +91,78 @@ function RecordPageContent() {
   };
 
   const handleStartRecording = async () => {
-    setIsRecording(true);
-    setMessage({ text: "Opening recorder...", type: "info" });
-    try {
-      const response = await caseService.recordCase(url);
-      
-      if (response.isCloud && response.cloudUrl) {
-        window.open(response.cloudUrl, "_blank");
-        setMessage({ 
-          text: "🚀 Cloud Recorder opened in a new tab! 1. In the Browserless window, select the 'Recorder' tab. 2. Enter your URL and perform your actions. 3. Copy the generated Playwright code and paste it below.", 
-          type: "success" 
-        });
-      } else {
-        setMessage({ text: "Recorder opened. Perform your actions, then copy the code here.", type: "success" });
-      }
-    } catch (err: any) {
-      setMessage({ text: err.message || "Failed to start recorder", type: "error" });
-      setIsRecording(false);
+    if (recordingMethod === "extension" && extensionInstalled) {
+      startExtensionRecording();
+    } else {
+      startManualRecording();
     }
+  };
+
+  const startExtensionRecording = () => {
+    setIsRecording(true);
+    setMessage({ text: "Starting extension recorder...", type: "info" });
+
+    try {
+      window.chrome?.runtime?.sendMessage(
+        EXTENSION_ID,
+        { type: 'START_RECORDING', url: url },
+        (response: any) => {
+          if (window.chrome?.runtime?.lastError || !response?.success) {
+            setMessage({
+              text: "Failed to start extension recorder. Try manual mode instead.",
+              type: "error"
+            });
+            setIsRecording(false);
+            setRecordingMethod("manual");
+          } else {
+            setMessage({
+              text: "🎬 Extension recorder started! Perform your actions in the opened tab. Click 'Get Code' when done.",
+              type: "success"
+            });
+          }
+        }
+      );
+    } catch (error: any) {
+      setMessage({
+        text: "Extension communication failed. Switching to manual mode.",
+        type: "error"
+      });
+      setIsRecording(false);
+      setRecordingMethod("manual");
+    }
+  };
+
+  const startManualRecording = () => {
+    setIsRecording(true);
+    setMessage({
+      text: "📋 Instructions displayed below. Follow the steps to record your test locally using Playwright.",
+      type: "success"
+    });
+  };
+
+  const handleGetCodeFromExtension = () => {
+    if (!extensionInstalled) return;
+
+    setMessage({ text: "Fetching recorded code from extension...", type: "info" });
+
+    window.chrome?.runtime?.sendMessage(
+      EXTENSION_ID,
+      { type: 'GET_RECORDED_CODE' },
+      (response: any) => {
+        if (window.chrome?.runtime?.lastError || !response?.code) {
+          setMessage({
+            text: "Failed to get code from extension. Make sure you've recorded some actions.",
+            type: "error"
+          });
+        } else {
+          setRawCode(response.code);
+          setMessage({
+            text: `✅ Successfully imported ${response.actions?.length || 0} actions from extension!`,
+            type: "success"
+          });
+        }
+      }
+    );
   };
 
   const parseSteps = (code: string) => {
@@ -177,34 +267,180 @@ function RecordPageContent() {
             <section className="bg-gray-900 border border-gray-800 rounded-3xl p-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="w-10 h-10 bg-rose-500/20 text-rose-500 rounded-full flex items-center justify-center font-bold">1</div>
-                <h2 className="text-xl font-bold">Launch Recorder</h2>
+                <h2 className="text-xl font-bold">Record on Your Device</h2>
               </div>
               
-              <div className="flex gap-4">
-                <input
-                  type="text"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  className="flex-1 bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
-                  placeholder="https://example.com"
-                />
-                <button
-                  onClick={handleStartRecording}
-                  disabled={isRecording}
-                  className="bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center gap-2"
-                >
-                  <span className={isRecording ? "animate-pulse" : ""}>⏺️</span>
-                  {isRecording ? "Recording..." : "Start Recording"}
-                </button>
+              <div className="space-y-4">
+                {/* Recording Method Selector */}
+                {!isRecording && (
+                  <div className="flex gap-2 p-1 bg-gray-800 rounded-xl">
+                    <button
+                      onClick={() => setRecordingMethod("extension")}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                        recordingMethod === "extension"
+                          ? "bg-rose-600 text-white"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      🔌 Extension {extensionInstalled && "✓"}
+                    </button>
+                    <button
+                      onClick={() => setRecordingMethod("manual")}
+                      className={`flex-1 py-2 px-4 rounded-lg font-medium transition-all ${
+                        recordingMethod === "manual"
+                          ? "bg-rose-600 text-white"
+                          : "text-gray-400 hover:text-white"
+                      }`}
+                    >
+                      💻 Manual
+                    </button>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">Target URL</label>
+                  <input
+                    type="text"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                    placeholder="https://example.com"
+                  />
+                </div>
+
+                {recordingMethod === "extension" && !extensionInstalled && (
+                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 text-sm text-yellow-400">
+                    ⚠️ Extension not detected. <a href="#extension-install" className="underline font-bold">Install the extension</a> or switch to Manual mode.
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleStartRecording}
+                    disabled={isRecording || (recordingMethod === "extension" && !extensionInstalled)}
+                    className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white px-8 py-3 rounded-xl font-bold transition-all flex items-center justify-center gap-2"
+                  >
+                    <span className={isRecording ? "animate-pulse" : ""}>
+                      {recordingMethod === "extension" ? "🎬" : "📋"}
+                    </span>
+                    {isRecording
+                      ? (recordingMethod === "extension" ? "Recording..." : "Instructions Ready")
+                      : (recordingMethod === "extension" ? "Start Extension Recorder" : "Show Manual Instructions")
+                    }
+                  </button>
+                  
+                  {isRecording && recordingMethod === "extension" && (
+                    <button
+                      onClick={handleGetCodeFromExtension}
+                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold transition-all"
+                    >
+                      📥 Get Code
+                    </button>
+                  )}
+                </div>
               </div>
               
               {message.text && (
                 <div className={`mt-4 p-4 rounded-xl text-sm ${
-                  message.type === "error" ? "bg-red-500/10 text-red-400 border border-red-500/20" : 
-                  message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" : 
+                  message.type === "error" ? "bg-red-500/10 text-red-400 border border-red-500/20" :
+                  message.type === "success" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
                   "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                 }`}>
                   {message.text}
+                </div>
+              )}
+
+              {isRecording && (
+                <div className="mt-6 space-y-4">
+                  <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <h3 className="text-lg font-bold mb-4 text-emerald-400">🎯 Option 1: Use Playwright Codegen (Recommended)</h3>
+                    <div className="space-y-3">
+                      <p className="text-gray-300 text-sm">Run this command in your terminal to launch Playwright's recorder:</p>
+                      <div className="bg-gray-950 border border-gray-700 rounded-lg p-4 font-mono text-sm">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-gray-500">Terminal Command:</span>
+                          <button
+                            onClick={() => {
+                              navigator.clipboard.writeText(`npx playwright codegen ${url}`);
+                              setMessage({ text: "Command copied to clipboard!", type: "success" });
+                            }}
+                            className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded"
+                          >
+                            📋 Copy
+                          </button>
+                        </div>
+                        <code className="text-emerald-400">npx playwright codegen {url}</code>
+                      </div>
+                      <div className="text-sm text-gray-400 space-y-2 mt-4">
+                        <p><strong className="text-white">Step 1:</strong> Open your terminal/command prompt</p>
+                        <p><strong className="text-white">Step 2:</strong> Paste and run the command above</p>
+                        <p><strong className="text-white">Step 3:</strong> A browser window will open - perform your actions</p>
+                        <p><strong className="text-white">Step 4:</strong> Copy the generated code from the Playwright Inspector</p>
+                        <p><strong className="text-white">Step 5:</strong> Paste the code in the textarea below</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <h3 className="text-lg font-bold mb-4 text-blue-400">🌐 Option 2: Use Browser DevTools</h3>
+                    <div className="space-y-3 text-sm text-gray-400">
+                      <p><strong className="text-white">Step 1:</strong> Open your browser's DevTools (F12)</p>
+                      <p><strong className="text-white">Step 2:</strong> Go to the "Recorder" tab (Chrome) or "Network" tab</p>
+                      <p><strong className="text-white">Step 3:</strong> Record your actions manually</p>
+                      <p><strong className="text-white">Step 4:</strong> Write the Playwright code manually based on your actions</p>
+                      <p className="text-yellow-400 mt-3">⚠️ This requires knowledge of Playwright syntax</p>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-800 border border-gray-700 rounded-xl p-6">
+                    <h3 className="text-lg font-bold mb-4 text-purple-400">🔧 Option 3: Install Playwright Locally</h3>
+                    <div className="space-y-3">
+                      <p className="text-gray-300 text-sm">If you don't have Playwright installed, run these commands:</p>
+                      <div className="bg-gray-950 border border-gray-700 rounded-lg p-4 font-mono text-sm space-y-2">
+                        <div>
+                          <span className="text-gray-500">Install Playwright:</span>
+                          <div className="flex items-center justify-between mt-1">
+                            <code className="text-purple-400">npm install -D @playwright/test</code>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText('npm install -D @playwright/test');
+                                setMessage({ text: "Command copied!", type: "success" });
+                              }}
+                              className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded ml-2"
+                            >
+                              📋
+                            </button>
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-gray-500">Install browsers:</span>
+                          <div className="flex items-center justify-between mt-1">
+                            <code className="text-purple-400">npx playwright install</code>
+                            <button
+                              onClick={() => {
+                                navigator.clipboard.writeText('npx playwright install');
+                                setMessage({ text: "Command copied!", type: "success" });
+                              }}
+                              className="text-xs bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded ml-2"
+                            >
+                              📋
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-r from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 rounded-xl p-6">
+                    <h3 className="text-lg font-bold mb-3 text-emerald-400">💡 Pro Tips</h3>
+                    <ul className="space-y-2 text-sm text-gray-300">
+                      <li>✅ Playwright Codegen generates clean, production-ready code</li>
+                      <li>✅ Works on Windows, Mac, and Linux</li>
+                      <li>✅ No API keys or cloud services required</li>
+                      <li>✅ Records clicks, typing, navigation, and more</li>
+                      <li>✅ Supports multiple browsers (Chrome, Firefox, Safari)</li>
+                    </ul>
+                  </div>
                 </div>
               )}
             </section>
@@ -272,6 +508,70 @@ function RecordPageContent() {
                 >
                   {loading ? "Saving..." : "Create Test Case"}
                 </button>
+              </div>
+            </section>
+
+            {/* Extension Installation Guide */}
+            <section id="extension-install" className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 border border-purple-500/30 rounded-3xl p-8">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="w-10 h-10 bg-purple-500/20 text-purple-400 rounded-full flex items-center justify-center font-bold text-xl">🔌</div>
+                <h2 className="text-xl font-bold">Install BobTester Recorder Extension</h2>
+              </div>
+
+              <p className="text-gray-300 mb-6">
+                Get the browser extension for automated, one-click recording without any manual setup!
+              </p>
+
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                    <span className="text-2xl">🌐</span> Chrome / Edge
+                  </h3>
+                  <ol className="space-y-2 text-sm text-gray-300 mb-4">
+                    <li><strong className="text-white">1.</strong> Download the extension folder from the repository</li>
+                    <li><strong className="text-white">2.</strong> Open <code className="bg-gray-800 px-2 py-1 rounded">chrome://extensions/</code></li>
+                    <li><strong className="text-white">3.</strong> Enable "Developer mode" (top-right toggle)</li>
+                    <li><strong className="text-white">4.</strong> Click "Load unpacked" and select the extension folder</li>
+                    <li><strong className="text-white">5.</strong> Pin the extension to your toolbar</li>
+                  </ol>
+                  <a
+                    href="/api/extension/download"
+                    className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-all"
+                  >
+                    📥 Download Extension ZIP
+                  </a>
+                </div>
+
+                <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+                  <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                    <span className="text-2xl">🦊</span> Firefox
+                  </h3>
+                  <ol className="space-y-2 text-sm text-gray-300 mb-4">
+                    <li><strong className="text-white">1.</strong> Download the extension folder from the repository</li>
+                    <li><strong className="text-white">2.</strong> Open <code className="bg-gray-800 px-2 py-1 rounded">about:debugging#/runtime/this-firefox</code></li>
+                    <li><strong className="text-white">3.</strong> Click "Load Temporary Add-on"</li>
+                    <li><strong className="text-white">4.</strong> Select manifest.json from the extension folder</li>
+                    <li><strong className="text-white">5.</strong> Extension will be loaded (temporary)</li>
+                  </ol>
+                  <a
+                    href="/api/extension/download"
+                    className="inline-block bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-medium transition-all"
+                  >
+                    📥 Download Extension ZIP
+                  </a>
+                </div>
+              </div>
+
+              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4">
+                <h4 className="font-bold text-emerald-400 mb-2">✨ Extension Benefits</h4>
+                <ul className="grid md:grid-cols-2 gap-2 text-sm text-gray-300">
+                  <li>✅ One-click recording start</li>
+                  <li>✅ Automatic code generation</li>
+                  <li>✅ Smart selector detection</li>
+                  <li>✅ Real-time action capture</li>
+                  <li>✅ Visual recording indicator</li>
+                  <li>✅ Direct integration with BobTester</li>
+                </ul>
               </div>
             </section>
           </div>

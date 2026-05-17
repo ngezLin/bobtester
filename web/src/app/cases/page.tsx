@@ -49,19 +49,22 @@ export default function CasesPage() {
   };
 
   const handleExecuteRun = async (assetId: number | null) => {
+    if (running) return; // Prevent double-clicks
+    
     setRunning(true);
     try {
       const data = await runService.executeRun(selectedCase.id, assetId);
       if (data.success) {
+        setSelectedCase(null);
+        alert("Test execution started! Check the Execution History page for results.");
         router.push("/runs");
       } else {
-        alert(data.message);
+        alert(data.message || "Failed to start test execution");
+        setRunning(false);
       }
     } catch (err: any) {
       alert(err.message || "Failed to start test execution");
-    } finally {
       setRunning(false);
-      setSelectedCase(null);
     }
   };
 
@@ -175,13 +178,17 @@ export default function CasesPage() {
                 <button
                   onClick={() => handleExecuteRun(null)}
                   disabled={running}
-                  className="w-full text-left p-4 bg-gray-800 hover:bg-gray-700 rounded-2xl border border-transparent hover:border-blue-500 transition-all flex justify-between items-center group"
+                  className="w-full text-left p-4 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl border border-transparent hover:border-blue-500 transition-all flex justify-between items-center group"
                 >
                   <div>
                     <p className="font-bold">No Asset (Default)</p>
                     <p className="text-xs text-gray-500">Run with recorded values only</p>
                   </div>
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity">▶️</span>
+                  {running ? (
+                    <div className="w-5 h-5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">▶️</span>
+                  )}
                 </button>
 
                 {caseAssets.map((asset: any) => (
@@ -189,7 +196,7 @@ export default function CasesPage() {
                     key={asset.id}
                     onClick={() => handleExecuteRun(asset.id)}
                     disabled={running}
-                    className="w-full text-left p-4 bg-gray-800 hover:bg-gray-700 rounded-2xl border border-transparent hover:border-emerald-500 transition-all flex justify-between items-center group"
+                    className="w-full text-left p-4 bg-gray-800 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-2xl border border-transparent hover:border-emerald-500 transition-all flex justify-between items-center group"
                   >
                     <div>
                       <p className="font-bold">{asset.name}</p>
@@ -197,7 +204,11 @@ export default function CasesPage() {
                         {asset.is_negative ? "Negative Test Case" : "Positive Test Case"}
                       </p>
                     </div>
-                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">▶️</span>
+                    {running ? (
+                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <span className="opacity-0 group-hover:opacity-100 transition-opacity">▶️</span>
+                    )}
                   </button>
                 ))}
               </div>

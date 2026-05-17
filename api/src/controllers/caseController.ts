@@ -1,8 +1,6 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import supabase from "../db";
-import { exec } from "child_process";
-import { PlaywrightService } from "../services/playwrightService";
 
 export class CaseController {
   static async createCase(req: AuthRequest, res: Response) {
@@ -283,56 +281,15 @@ export class CaseController {
       });
     }
 
-    console.log(
-      `[Record Request] URL: ${url}, VERCEL: ${process.env.VERCEL}, NODE_ENV: ${process.env.NODE_ENV}`,
-    );
+    // Always return instructions for local recording
+    // No server-side Playwright execution needed
+    console.log(`[record] Providing local recording instructions for: ${url}`);
 
-    const isCloudEnvironment =
-      process.env.VERCEL || process.env.NODE_ENV === "production";
-
-    if (isCloudEnvironment) {
-      const cloudUrl = PlaywrightService.getCloudRecorderUrl(url);
-      return res.json({
-        success: true,
-        isCloud: true,
-        cloudUrl,
-        message:
-          "Cloud recorder session prepared. Please use the remote browser to record your actions.",
-      });
-    }
-
-    try {
-      console.log(`[record] Starting recorder for: ${url}`);
-
-      exec(`npx playwright codegen ${url}`, (error, stdout, stderr) => {
-        console.log("[record] STDOUT:", stdout);
-
-        if (stderr) {
-          console.error("[record] STDERR:", stderr);
-        }
-
-        if (error) {
-          console.error("[record] Exec error:", error);
-          return;
-        }
-
-        console.log(`[record] Recorder closed for ${url}`);
-      });
-
-      console.log("[record] Recorder launched successfully");
-
-      res.json({
-        success: true,
-        isCloud: false,
-        message: "Local recorder launched. Please check your desktop.",
-      });
-    } catch (error: any) {
-      console.error("[record] Catch error:", error);
-
-      res.status(500).json({
-        success: false,
-        message: "Failed to launch recorder",
-      });
-    }
+    res.json({
+      success: true,
+      isCloud: false,
+      message: "Use Playwright Codegen on your local device to record actions. Run: npx playwright codegen " + url,
+      command: `npx playwright codegen ${url}`,
+    });
   }
 }
