@@ -5,6 +5,7 @@ import { projectService } from "@/api/projects";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -16,6 +17,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [runResult, setRunResult] = useState<any>(null);
+  const [alertMessage, setAlertMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProjectDetails();
@@ -41,7 +43,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       setRunResult(res);
     } catch (error: any) {
       console.error("Failed to run suite", error);
-      alert(error.response?.data?.message || "Failed to start batch run");
+      setAlertMessage(error.response?.data?.message || "Failed to start batch run");
     } finally {
       setRunning(false);
     }
@@ -177,6 +179,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
       )}
         </div>
       </main>
+
+      <ConfirmModal
+        isOpen={alertMessage !== null}
+        title="Execution Error"
+        message={alertMessage || ""}
+        confirmText="OK"
+        onConfirm={() => setAlertMessage(null)}
+        onClose={() => setAlertMessage(null)}
+        isDanger={true}
+      />
     </div>
   );
 }

@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/common/Sidebar";
 import { runService } from "@/api/runs";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function RunsPage() {
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedRun, setSelectedRun] = useState<any>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchRuns(true);
@@ -32,15 +34,20 @@ export default function RunsPage() {
     }
   };
 
-  const handleDeleteRun = async (e: React.MouseEvent, id: number) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: number) => {
     e.stopPropagation();
-    if (!confirm("Delete this run from history?")) return;
-    
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteId === null) return;
     try {
-      await runService.deleteRun(id);
+      await runService.deleteRun(confirmDeleteId);
       fetchRuns();
     } catch (err: any) {
       alert(err.message || "Failed to delete run");
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -117,11 +124,11 @@ export default function RunsPage() {
                           View
                         </button>
                         <button
-                          onClick={(e) => handleDeleteRun(e, run.id)}
-                          className="p-2 text-gray-500 hover:text-red-500 transition-colors"
-                        >
-                          🗑️
-                        </button>
+                           onClick={(e) => handleDeleteClick(e, run.id)}
+                           className="p-2 text-gray-500 hover:text-red-500 transition-colors"
+                         >
+                           🗑️
+                         </button>
                       </td>
                     </tr>
                   ))}
@@ -201,15 +208,28 @@ export default function RunsPage() {
                     <h3 className="text-xs uppercase font-black text-gray-500 tracking-widest">Execution Logs</h3>
                     <div className="bg-gray-950 p-6 rounded-2xl font-mono text-xs space-y-3 max-h-96 overflow-auto border border-gray-800">
                       {selectedRun.logs ? (typeof selectedRun.logs === "string" ? JSON.parse(selectedRun.logs) : selectedRun.logs).map((log: any, i: number) => (
-                        <div key={i} className="flex gap-3">
-                          <span className="text-gray-600">[{new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}]</span>
-                          <span className={
-                            log.level === "error" ? "text-rose-500" :
-                            log.level === "warn" ? "text-yellow-500" :
-                            "text-emerald-500"
-                          }>{log.level.toUpperCase()}</span>
-                          <span className="text-gray-300">{log.message}</span>
-                        </div>
+                        log.level === "screenshot" ? (
+                          <div key={i} className="mt-2 mb-1">
+                            <div className="text-[9px] uppercase tracking-widest text-gray-600 mb-1.5 font-sans">
+                              📸 Step {(log.step_index ?? 0) + 1} — Failure Screenshot
+                            </div>
+                            <img
+                              src={log.message}
+                              alt={`Step ${(log.step_index ?? 0) + 1} failure`}
+                              className="w-full rounded-xl border border-rose-500/20 shadow-lg"
+                            />
+                          </div>
+                        ) : (
+                          <div key={i} className="flex gap-3">
+                            <span className="text-gray-600 shrink-0">[{new Date(log.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'})}]</span>
+                            <span className={`shrink-0 ${
+                              log.level === "error" ? "text-rose-500" :
+                              log.level === "warn" ? "text-yellow-500" :
+                              "text-emerald-500"
+                            }`}>{log.level.toUpperCase()}</span>
+                            <span className="text-gray-300 break-all">{log.message}</span>
+                          </div>
+                        )
                       )) : <p className="text-gray-600 italic">No logs available</p>}
                     </div>
                   </div>
@@ -240,6 +260,17 @@ export default function RunsPage() {
               </div>
             </div>
           )}
+          
+          <ConfirmModal
+            isOpen={confirmDeleteId !== null}
+            title="Delete Run History"
+            message="Are you sure you want to delete this run from your execution history? This action cannot be undone."
+            confirmText="Delete"
+            cancelText="Cancel"
+            onConfirm={handleConfirmDelete}
+            onClose={() => setConfirmDeleteId(null)}
+            isDanger={true}
+          />
         </div>
       </main>
     </div>

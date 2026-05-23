@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { caseService } from "@/api/cases";
 import { assetService } from "@/api/assets";
 import { runService } from "@/api/runs";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function CasesPage() {
   const [cases, setCases] = useState([]);
@@ -15,6 +16,7 @@ export default function CasesPage() {
   const [selectedCase, setSelectedCase] = useState<any>(null);
   const [caseAssets, setCaseAssets] = useState([]);
   const [running, setRunning] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -66,14 +68,20 @@ export default function CasesPage() {
   };
 
   const handleDeleteCase = async (id: number) => {
-    if (!confirm("Are you sure you want to delete this test case?")) return;
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteId === null) return;
     try {
-      const data = await caseService.deleteCase(id);
+      const data = await caseService.deleteCase(confirmDeleteId);
       if (data.success) {
         fetchCases();
       }
     } catch (err: any) {
       alert(err.message || "Failed to delete case");
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -249,6 +257,17 @@ export default function CasesPage() {
             </div>
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={confirmDeleteId !== null}
+          title="Delete Test Case"
+          message="Are you sure you want to delete this test case? This will permanently delete the test steps and all associated history."
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={handleConfirmDelete}
+          onClose={() => setConfirmDeleteId(null)}
+          isDanger={true}
+        />
       </main>
     </div>
   );

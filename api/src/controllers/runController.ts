@@ -73,7 +73,8 @@ export class RunController {
       const finalStatus = security.determineStatus(success);
 
       // 6. Update Test Run record
-      await supabase
+      console.log(`🌐 [Run ${testRunId}] Updating database with final status: ${finalStatus}`);
+      const { data: updateData, error: updateError } = await supabase
         .from("test_runs")
         .update({
           status: finalStatus,
@@ -82,7 +83,15 @@ export class RunController {
           logs: JSON.stringify(logs),
           vulnerabilities: JSON.stringify(vulnerabilities),
         })
-        .eq("id", testRunId);
+        .eq("id", testRunId)
+        .select();
+
+      if (updateError) {
+        console.error(`❌ [Run ${testRunId}] Database update failed:`, updateError);
+        throw new Error(`Database update failed: ${updateError.message}`);
+      } else {
+        console.log(`✅ [Run ${testRunId}] Database update succeeded:`, updateData);
+      }
 
       // 7. Respond to client
       res.json({
@@ -93,6 +102,12 @@ export class RunController {
       });
     } catch (error: any) {
       console.error("Run execution error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          message: error.message || "An unexpected error occurred during test execution",
+        });
+      }
     }
   }
 

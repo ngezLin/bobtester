@@ -43,7 +43,37 @@ function translateJsonToPlaywright(jsonString: string): string {
 
     let code = `// Automatically translated from Chrome DevTools Recorder JSON\n`;
     
-    for (const step of data.steps) {
+    // Optimize: Collapse consecutive 'change' steps on the same selector to keep only the final fully-typed value
+    const steps = data.steps;
+    const optimizedSteps: any[] = [];
+    
+    for (let i = 0; i < steps.length; i++) {
+      const current = steps[i];
+      if (current.type === "change") {
+        const currentSelector = getBestSelector(current.selectors) || current.selector;
+        let nextIndex = i + 1;
+        while (nextIndex < steps.length) {
+          const next = steps[nextIndex];
+          if (next.type === "change") {
+            const nextSelector = getBestSelector(next.selectors) || next.selector;
+            if (nextSelector === currentSelector) {
+              i = nextIndex; // Fast-forward to the latest change step on this selector
+              nextIndex++;
+            } else {
+              break;
+            }
+          } else if (next.type === "keyUp" || next.type === "keyDown") {
+            // Skip intermediate keystroke noise
+            nextIndex++;
+          } else {
+            break;
+          }
+        }
+      }
+      optimizedSteps.push(steps[i]);
+    }
+    
+    for (const step of optimizedSteps) {
       const rawSelector = getBestSelector(step.selectors) || step.selector;
       const selector = rawSelector ? rawSelector.replace(/'/g, "\\'") : "";
 
@@ -74,7 +104,7 @@ function translateJsonToPlaywright(jsonString: string): string {
         }
         case "doubleClick": {
           if (selector) {
-            code += `await page.locator('${selector}').dblclick();\n`;
+            code += `await page.locator('${selector}').click();\n`;
           }
           break;
         }
@@ -167,7 +197,7 @@ function RecordPageContent() {
             if (rawLocator.includes("Placeholder")) selector = `[placeholder="${genericMatch[1]}"]`;
             else if (rawLocator.includes("Label")) selector = `label:has-text("${genericMatch[1]}")`;
             else if (rawLocator.includes("Text")) selector = `text="${genericMatch[1]}"`;
-            else if (rawLocator.includes("TestId")) selector = `data-testid=${genericMatch[1]}`;
+            else if (rawLocator.includes("TestId")) selector = genericMatch[1]; // simplified testId
             else selector = genericMatch[1];
           }
         }
@@ -176,6 +206,11 @@ function RecordPageContent() {
           const genericMatch = rawLocator.match(/(?:locator|locate)\(['"](.*?)['"]\)/);
           selector = genericMatch ? genericMatch[1] : rawLocator;
         }
+      }
+
+      // Clean up escaped quotes in extracted selector
+      if (selector) {
+        selector = selector.replace(/\\'/g, "'").replace(/\\"/g, '"');
       }
 
       // 2. Extract action and value
@@ -192,7 +227,25 @@ function RecordPageContent() {
       }
     });
 
-    return steps;
+    // Optimize: Collapse consecutive 'fill' steps on the same selector to keep only the final fully-typed value
+    const optimizedSteps: any[] = [];
+    for (let i = 0; i < steps.length; i++) {
+      const current = steps[i];
+      if (current.action === "fill" && current.selector) {
+        let nextIndex = i + 1;
+        while (
+          nextIndex < steps.length &&
+          steps[nextIndex].action === "fill" &&
+          steps[nextIndex].selector === current.selector
+        ) {
+          i = nextIndex; // Fast-forward to the latest fill action on this selector
+          nextIndex++;
+        }
+      }
+      optimizedSteps.push(steps[i]);
+    }
+
+    return optimizedSteps;
   };
 
   const handleSave = async () => {

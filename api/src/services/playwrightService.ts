@@ -63,103 +63,128 @@ export class PlaywrightService {
     logs: any[];
     vulnerabilities: Vulnerability[];
   }> {
-    const browser = await this.launchBrowser();
-    const context = await browser.newContext();
-    const page = await context.newPage();
-    const security = new SecurityChecker();
     const logs: any[] = [];
-    let screenshotPath: string | undefined;
-    let success = true;
-    let currentStepIndex = 0;
-
-    // Robustness: If steps is a string (due to previous double-stringification), parse it
-    if (typeof steps === "string") {
-      try {
-        steps = JSON.parse(steps);
-      } catch (e) {
-        console.error(`[Run ${testRunId}] [ERROR] Failed to parse steps:`, e);
-        steps = [];
-      }
-    }
-
     const addLog = (message: string, level: string = "info") => {
       logs.push({ message, level, timestamp: new Date().toISOString() });
       console.log(`[Run ${testRunId}] [${level.toUpperCase()}] ${message}`);
     };
 
-    // Robustness: If assetData is a string (due to previous double-stringification), parse it
-    if (typeof assetData === "string") {
-      try {
-        assetData = JSON.parse(assetData);
-      } catch (e: any) {
-        addLog(`Failed to parse asset data string: ${e.message}`, "warn");
-        assetData = {};
-      }
-    }
-
-    // --- Security Listeners ---
-
-    // 1. XSS Sniffer (Dialogs)
-    page.on("dialog", async (dialog) => {
-      const message = dialog.message();
-      addLog(
-        `Security Alert: Unexpected dialog detected! Content: "${message}"`,
-        "warn",
-      );
-      security.addVulnerability({
-        type: "Cross-Site Scripting (XSS)",
-        severity: "HIGH",
-        evidence: `Triggered dialog with content: "${message}"`,
-        step_index: currentStepIndex,
-      });
-      await dialog.dismiss();
-    });
-
-    // 2. XSS Sniffer (Console)
-    page.on("console", (msg) => {
-      const text = msg.text();
-      // Look for common XSS probe patterns or "BOB_XSS" token
-      if (
-        text.includes("XSS") ||
-        text.includes("BOB_") ||
-        msg.type() === "error"
-      ) {
-        if (text.includes("BOB_")) {
-          security.addVulnerability({
-            type: "Cross-Site Scripting (XSS)",
-            severity: "HIGH",
-            evidence: `Found XSS probe token in console: "${text}"`,
-            step_index: currentStepIndex,
-          });
-        }
-      }
-    });
-
-    // 3. Response Scanner (SQLi & Headers)
-    page.on("response", async (response) => {
-      try {
-        const url = response.url();
-        const status = response.status();
-        const headers = response.headers();
-
-        // Skip large files or non-text responses for body scanning
-        const contentType = headers["content-type"] || "";
-        let body = "";
-        if (contentType.includes("text") || contentType.includes("json")) {
-          body = await response.text();
-        }
-
-        security.scanResponse(url, status, headers, body, currentStepIndex);
-      } catch (e) {
-        // Response might be closed or empty
-      }
-    });
+    let browser: Browser | undefined;
+    let context: any;
+    let page: Page | undefined;
+    const security = new SecurityChecker();
+    let screenshotPath: string | undefined;
+    let success = true;
+    let currentStepIndex = 0;
+    let dialogHandled = false; // tracks when a dialog was accepted so we can wait for nav
 
     try {
       addLog("Starting dynamic test execution with Security Probing enabled");
 
+      // Robustness: If steps is a string (due to previous double-stringification), parse it
+      if (typeof steps === "string") {
+        try {
+          steps = JSON.parse(steps);
+        } catch (e) {
+          console.error(`[Run ${testRunId}] [ERROR] Failed to parse steps:`, e);
+          steps = [];
+        }
+      }
+
+      // Robustness: If assetData is a string (due to previous double-stringification), parse it
+      if (typeof assetData === "string") {
+        try {
+          assetData = JSON.parse(assetData);
+        } catch (e: any) {
+          addLog(`Failed to parse asset data string: ${e.message}`, "warn");
+          assetData = {};
+        }
+      }
+
+      addLog("Launching browser...");
+      browser = await this.launchBrowser();
+      context = await browser.newContext();
+      const p = await context.newPage();
+      page = p;
+
+      // --- Security Listeners ---
+
+      // 1. XSS Sniffer (Dialogs)
+      p.on("dialog", async (dialog: any) => {
+        const message = dialog.message();
+        const dialogType = dialog.type(); // 'alert', 'confirm', 'prompt', 'beforeunload'
+        
+        addLog(`[Dialog Intercepted] Type: "${dialogType}", Message: "${message}"`);
+        
+        // Flag as XSS if it's an 'alert' or 'prompt', while accepting 'confirm' or 'beforeunload'
+        const isStandardConfirm = dialogType === "confirm" || dialogType === "beforeunload";
+        
+        if (!isStandardConfirm) {
+          addLog(
+            `Security Alert: Unexpected alert dialog detected! Content: "${message}"`,
+            "warn",
+          );
+          security.addVulnerability({
+            type: "Cross-Site Scripting (XSS)",
+            severity: "HIGH",
+            evidence: `Triggered unexpected ${dialogType} dialog with content: "${message}"`,
+            step_index: currentStepIndex,
+          });
+          await dialog.dismiss();
+        } else {
+          addLog(`Accepting confirmation dialog to allow form submission/navigation to proceed.`);
+          dialogHandled = true; // signal that a nav-triggering dialog was accepted
+          await dialog.accept();
+        }
+      });
+
+      // 2. XSS Sniffer (Console)
+      p.on("console", (msg: any) => {
+        const text = msg.text();
+        // Look for common XSS probe patterns or "BOB_XSS" token
+        if (
+          text.includes("XSS") ||
+          text.includes("BOB_") ||
+          msg.type() === "error"
+        ) {
+          if (text.includes("BOB_")) {
+            security.addVulnerability({
+              type: "Cross-Site Scripting (XSS)",
+              severity: "HIGH",
+              evidence: `Found XSS probe token in console: "${text}"`,
+              step_index: currentStepIndex,
+            });
+          }
+        }
+      });
+
+      // 3. Response Scanner (SQLi & Headers)
+      p.on("response", async (response: any) => {
+        try {
+          const url = response.url();
+          const status = response.status();
+          const headers = response.headers();
+
+          // Skip large files or non-text responses for body scanning
+          const contentType = headers["content-type"] || "";
+          let body = "";
+          if (contentType.includes("text") || contentType.includes("json")) {
+            body = await response.text();
+          }
+
+          security.scanResponse(url, status, headers, body, currentStepIndex);
+        } catch (e) {
+          // Response might be closed or empty
+        }
+      });
+
       for (const step of steps) {
         let { action, selector, value } = step;
+
+        // Clean up escaped quotes in selectors (common in Chrome Recorder translations)
+        if (selector) {
+          selector = selector.replace(/\\'/g, "'").replace(/\\"/g, '"');
+        }
 
         // Clean up internal:role selectors to standard Playwright role selectors
         if (selector && selector.includes("internal:role=")) {
@@ -185,64 +210,74 @@ export class PlaywrightService {
           switch (action) {
             case "goto":
               addLog(`Navigating to ${finalValue}`);
-              await page.goto(finalValue, {
+              await p.goto(finalValue, {
                 waitUntil: "domcontentloaded",
                 timeout: 30000,
               });
               break;
             case "fill":
               addLog(`Filling ${selector} with security payload or value`);
-              await page.locator(selector).fill(finalValue || "");
+              await p.locator(selector).fill(finalValue || "");
               break;
             case "click":
               addLog(`Clicking ${selector}`);
-              await page.locator(selector).click({ timeout: 15000 });
-              // Removed networkidle wait as it hangs on sites with background tracking
+              await p.locator(selector).click({ timeout: 15000 });
+              // If a confirm dialog was accepted during this click (e.g. form submit),
+              // wait for the resulting page navigation to settle before moving on.
+              if (dialogHandled) {
+                dialogHandled = false;
+                try {
+                  await p.waitForLoadState("domcontentloaded", { timeout: 10000 });
+                  addLog(`Page settled after dialog-triggered navigation`);
+                } catch (_) {
+                  // Page might not navigate — that's fine, continue
+                }
+              }
               break;
-            case "verify":
-              addLog(`Verifying: ${selector}`);
-              if (selector.startsWith("url:")) {
-                const expectedUrl = selector.replace("url:", "").trim();
-                const currentUrl = page.url();
-                if (!currentUrl.includes(expectedUrl)) {
+            case "assert":
+            case "verify": {
+              addLog(`Asserting: ${selector || finalValue}`);
+              // Determine assert target from selector or value
+              const assertTarget = selector || finalValue || "";
+              if (assertTarget.startsWith("url:")) {
+                const expectedFragment = assertTarget.replace("url:", "").trim();
+                const currentUrl = p.url();
+                if (!currentUrl.includes(expectedFragment)) {
                   throw new Error(
-                    `URL verification failed. Expected to contain: ${expectedUrl}, but got: ${currentUrl}`,
+                    `Assertion failed: URL should contain "${expectedFragment}" but got "${currentUrl}"`,
                   );
                 }
-              } else if (selector.startsWith("text:")) {
-                const fullText = selector.replace("text:", "").trim();
-                const parts = fullText.split("|").map((p: string) => p.trim());
-
+                addLog(`✅ URL assertion passed: contains "${expectedFragment}"`);
+              } else if (assertTarget.startsWith("text:")) {
+                const textToFind = assertTarget.replace("text:", "").trim();
+                const parts = textToFind.split("|").map((t: string) => t.trim());
                 let found = false;
                 for (const part of parts) {
                   try {
-                    const locator = page.getByText(part, { exact: false });
-                    await locator.waitFor({ state: "visible", timeout: 2000 });
+                    await p.getByText(part, { exact: false }).waitFor({ state: "visible", timeout: 5000 });
                     found = true;
-                    addLog(`Found match for text part: "${part}"`);
+                    addLog(`✅ Text assertion passed: "${part}" is visible`);
                     break;
-                  } catch (e) {
+                  } catch (_) {
                     continue;
                   }
                 }
-
                 if (!found) {
                   throw new Error(
-                    `Verification failed: None of the text options [${parts.join(", ")}] were found.`,
+                    `Assertion failed: None of [${parts.join(", ")}] found on the page`,
                   );
                 }
-              } else {
-                const locator = page.locator(selector);
-                await locator
-                  .waitFor({ state: "visible", timeout: 5000 })
-                  .catch(() => {
-                    throw new Error(
-                      `Verification failed: Selector "${selector}" not found or not visible.`,
-                    );
-                  });
+              } else if (assertTarget) {
+                // Locator-based visibility assertion
+                await p.locator(assertTarget).waitFor({ state: "visible", timeout: 5000 }).catch(() => {
+                  throw new Error(
+                    `Assertion failed: Element "${assertTarget}" is not visible`,
+                  );
+                });
+                addLog(`✅ Element assertion passed: "${assertTarget}" is visible`);
               }
-              addLog(`Verification successful: ${selector}`);
               break;
+            }
             default:
               addLog(`Unknown action: ${action}`, "warn");
           }
@@ -260,8 +295,22 @@ export class PlaywrightService {
         } catch (stepError: any) {
           addLog(
             `Step ${currentStepIndex + 1} failed: ${stepError.message}`,
-            "warn",
+            "error",
           );
+          // 📸 Capture a failure screenshot embedded in logs so the user sees
+          // the exact page state at the moment of failure.
+          try {
+            const failBuffer = await p.screenshot({ type: "png", timeout: 5000 });
+            const failBase64 = failBuffer.toString("base64");
+            logs.push({
+              message: `data:image/png;base64,${failBase64}`,
+              level: "screenshot",
+              timestamp: new Date().toISOString(),
+              step_index: currentStepIndex,
+            });
+          } catch (_) {
+            // Screenshot failed silently — don't block the error
+          }
           throw stepError;
         }
 
@@ -269,13 +318,19 @@ export class PlaywrightService {
       }
 
       addLog("Test execution completed successfully");
-      screenshotPath = await this.takeScreenshot(page, testRunId, "success");
+      if (p) {
+        screenshotPath = await this.takeScreenshot(p, testRunId, "success");
+      }
     } catch (error: any) {
       success = false;
-      addLog(`Execution error: ${error.message}`, "error");
-      screenshotPath = await this.takeScreenshot(page, testRunId, "error");
+      addLog(`Execution error: ${error.message || error}`, "error");
+      if (page) {
+        screenshotPath = await this.takeScreenshot(page, testRunId, "error");
+      }
     } finally {
-      await browser.close();
+      if (browser) {
+        await browser.close();
+      }
     }
 
     return {

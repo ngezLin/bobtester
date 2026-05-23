@@ -5,6 +5,7 @@ import { projectService } from "@/api/projects";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/common/Sidebar";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<any[]>([]);
@@ -13,6 +14,7 @@ export default function ProjectsPage() {
   const [editingProject, setEditingProject] = useState<any>(null);
   const [formData, setFormData] = useState({ name: "", description: "" });
   const [processing, setProcessing] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -65,15 +67,21 @@ export default function ProjectsPage() {
     }
   };
 
-  const handleDelete = async (e: React.MouseEvent, id: number) => {
+  const handleDeleteClick = (e: React.MouseEvent, id: number) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!confirm("Are you sure? This will delete all test cases in this project.")) return;
+    setConfirmDeleteId(id);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteId === null) return;
     try {
-      await projectService.deleteProject(id);
+      await projectService.deleteProject(confirmDeleteId);
       fetchProjects();
     } catch (error) {
       console.error("Failed to delete project", error);
+    } finally {
+      setConfirmDeleteId(null);
     }
   };
 
@@ -148,7 +156,7 @@ export default function ProjectsPage() {
                       ✏️
                     </button>
                     <button 
-                      onClick={(e) => handleDelete(e, p.id)}
+                      onClick={(e) => handleDeleteClick(e, p.id)}
                       className="text-gray-400 hover:text-red-500"
                       title="Delete Project"
                     >
@@ -213,6 +221,17 @@ export default function ProjectsPage() {
       )}
         </div>
       </main>
+
+      <ConfirmModal
+        isOpen={confirmDeleteId !== null}
+        title="Delete Project"
+        message="Are you sure? This will delete all test cases in this project. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onClose={() => setConfirmDeleteId(null)}
+        isDanger={true}
+      />
     </div>
   );
 }

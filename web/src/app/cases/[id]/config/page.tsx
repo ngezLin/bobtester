@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { useEffect, useState } from "react";
 import Sidebar from "@/components/common/Sidebar";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { caseService } from "@/api/cases";
 import { assetService } from "@/api/assets";
 import StepList from "@/components/cases/StepList";
 import AssetManager from "@/components/cases/AssetManager";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function ConfigPage() {
   const params = useParams();
@@ -22,6 +23,8 @@ export default function ConfigPage() {
   const [submittingAsset, setSubmittingAsset] = useState(false);
   const [steps, setSteps] = useState<any[]>([]);
   const [savingSteps, setSavingSteps] = useState(false);
+  const [confirmDeleteType, setConfirmDeleteType] = useState<"step" | "asset" | null>(null);
+  const [confirmDeleteIndex, setConfirmDeleteIndex] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCaseAndAssets();
@@ -68,25 +71,25 @@ export default function ConfigPage() {
   };
 
   const handleUpdateStep = (index: number, field: string, value: string) => {
-    const newSteps = [...steps];
-    newSteps[index] = { ...newSteps[index], [field]: value };
-    setSteps(newSteps);
+    setSteps((prevSteps) => {
+      const newSteps = [...prevSteps];
+      newSteps[index] = { ...newSteps[index], [field]: value };
+      return newSteps;
+    });
   };
 
   const handleDeleteStep = (index: number) => {
-    if (!confirm(`Delete Step ${index + 1}?`)) return;
-    const newSteps = [...steps];
-    newSteps.splice(index, 1);
-    setSteps(newSteps);
+    setConfirmDeleteType("step");
+    setConfirmDeleteIndex(index);
   };
 
-  const handleSaveSteps = async () => {
+  const handleSaveSteps = async (stepsToSave?: any[]) => {
     setSavingSteps(true);
     try {
       const res = await caseService.updateCase(id, {
         name: caseDetails.name,
         target_url: caseDetails.target_url,
-        steps: steps,
+        steps: stepsToSave || steps,
       });
       if (res.success) {
         alert("Steps updated successfully!");
@@ -98,14 +101,45 @@ export default function ConfigPage() {
     }
   };
 
-  const handleDeleteAsset = async (assetId: number) => {
-    if (!confirm("Are you sure you want to delete this asset?")) return;
-    try {
-      await assetService.deleteAsset(assetId);
-      fetchCaseAndAssets();
-    } catch (err: any) {
-      alert(err.message || "Failed to delete asset");
+  const handleDeleteAsset = (assetId: number) => {
+    setConfirmDeleteType("asset");
+    setConfirmDeleteIndex(assetId);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (confirmDeleteIndex === null || !confirmDeleteType) return;
+    
+    if (confirmDeleteType === "step") {
+      const newSteps = [...steps];
+      newSteps.splice(confirmDeleteIndex, 1);
+      setSteps(newSteps);
+    } else if (confirmDeleteType === "asset") {
+      try {
+        await assetService.deleteAsset(confirmDeleteIndex);
+        fetchCaseAndAssets();
+      } catch (err: any) {
+        alert(err.message || "Failed to delete asset");
+      }
     }
+    
+    setConfirmDeleteType(null);
+    setConfirmDeleteIndex(null);
+  };
+
+  const getSuggestedKeys = (): string[] => {
+    const keys = new Set<string>();
+    steps.forEach((step: any) => {
+      if (step.value && typeof step.value === "string") {
+        const matches = step.value.match(/\[(.*?)\]/g);
+        if (matches) {
+          matches.forEach((m: string) => {
+            const keyName = m.slice(1, -1).trim();
+            if (keyName) keys.add(keyName);
+          });
+        }
+      }
+    });
+    return Array.from(keys);
   };
 
   if (loading) return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">Loading...</div>;
@@ -141,6 +175,7 @@ export default function ConfigPage() {
                 onSave={handleSaveSteps} 
                 onUpdateStep={handleUpdateStep} 
                 onDeleteStep={handleDeleteStep}
+                onUpdateAllSteps={setSteps}
               />
             </section>
 
@@ -150,11 +185,30 @@ export default function ConfigPage() {
                 submittingAsset={submittingAsset} 
                 onAddAsset={handleAddAsset} 
                 onDeleteAsset={handleDeleteAsset} 
+                suggestedKeys={getSuggestedKeys()}
               />
             </section>
           </div>
         </div>
       </main>
+
+      <ConfirmModal
+        isOpen={confirmDeleteType !== null}
+        title={confirmDeleteType === "step" ? "Delete Step" : "Delete Asset"}
+        message={
+          confirmDeleteType === "step"
+            ? `Are you sure you want to delete Step ${(confirmDeleteIndex ?? 0) + 1}?`
+            : "Are you sure you want to delete this asset? This action cannot be undone."
+        }
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onClose={() => {
+          setConfirmDeleteType(null);
+          setConfirmDeleteIndex(null);
+        }}
+        isDanger={true}
+      />
     </div>
   );
 }
