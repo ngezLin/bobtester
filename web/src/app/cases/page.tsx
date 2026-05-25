@@ -86,10 +86,10 @@ export default function CasesPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
       <Sidebar />
 
-      <main className="flex-1 p-10 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-10">
             <div>

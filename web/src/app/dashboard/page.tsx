@@ -53,7 +53,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-black text-white">
+      <div className="flex flex-col md:flex-row min-h-screen bg-black text-white">
         <Sidebar />
 
         <main className="flex-1 flex items-center justify-center p-6">
@@ -74,7 +74,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-black text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-black text-white">
       <Sidebar />
 
       <main className="flex-1 overflow-auto">

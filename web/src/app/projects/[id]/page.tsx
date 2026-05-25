@@ -51,9 +51,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-950 text-white">
+      <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
         <Sidebar />
-        <main className="flex-1 p-10 flex items-center justify-center">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 flex items-center justify-center">
           <div className="p-8 text-gray-400 flex items-center gap-3"><span className="animate-spin">⏳</span> Loading project details...</div>
         </main>
       </div>
@@ -62,9 +62,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   if (!project) {
     return (
-      <div className="flex min-h-screen bg-gray-950 text-white">
+      <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
         <Sidebar />
-        <main className="flex-1 p-10 flex items-center justify-center">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 flex items-center justify-center">
           <div className="p-8 text-red-400">Project not found.</div>
         </main>
       </div>
@@ -72,9 +72,9 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
       <Sidebar />
-      <main className="flex-1 p-10 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
         <div className="max-w-5xl mx-auto">
           <div className="mb-6">
         <Link href="/projects" className="text-gray-500 hover:text-white transition-colors text-sm flex items-center gap-2">
@@ -82,7 +82,7 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
         </Link>
       </div>
 
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-8 mb-8 flex items-start justify-between">
+      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         <div>
           <div className="flex items-center gap-3 mb-2">
             <span className="text-3xl">📁</span>
@@ -91,16 +91,16 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
           <p className="text-gray-400 max-w-2xl">{project.description || "No description provided."}</p>
         </div>
         
-        <div className="flex flex-col items-end">
+        <div className="flex flex-col items-stretch sm:items-end w-full sm:w-auto">
           <button
             onClick={handleRunSuite}
             disabled={running || cases.length === 0}
-            className="bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 flex items-center gap-2 text-lg"
+            className="bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 text-lg w-full sm:w-auto"
           >
             {running ? "🚀 Starting Suite..." : "▶️ Run Suite"}
           </button>
           {cases.length === 0 && (
-            <span className="text-xs text-gray-500 mt-2">Add test cases first</span>
+            <span className="text-xs text-gray-500 mt-2 text-center sm:text-right">Add test cases first</span>
           )}
         </div>
       </div>
@@ -153,8 +153,8 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
               
               <div className="space-y-3">
                 {folderCases.map((c: any) => (
-                  <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center justify-between group hover:border-gray-700 transition-colors">
-                    <div>
+                  <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 group hover:border-gray-700 transition-colors">
+                    <div className="w-full sm:w-auto">
                       <Link href={`/cases/${c.id}/config`} className="text-lg font-bold text-white hover:text-blue-400 transition-colors">
                         {c.name}
                       </Link>
@@ -162,10 +162,10 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         {c.target_url}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 w-full sm:w-auto">
                       <Link 
                         href={`/cases/${c.id}/config`}
-                        className="text-gray-400 hover:text-white bg-gray-800 px-3 py-1.5 rounded text-sm transition-colors"
+                        className="text-gray-400 hover:text-white bg-gray-800 px-3 py-1.5 rounded text-sm transition-colors text-center w-full sm:w-auto"
                       >
                         Edit / Configure
                       </Link>

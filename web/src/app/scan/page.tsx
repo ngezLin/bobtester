@@ -194,9 +194,9 @@ export default function ScanLandingPage() {
   const runningScans = scanHistory.filter((item) => item.status === "Running");
 
   return (
-    <div className="flex min-h-screen bg-gray-950">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950">
       <Sidebar />
-      <main className="flex-1 p-8">
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>

@@ -234,6 +234,56 @@ export class PlaywrightService {
                 }
               }
               break;
+            case "screenshot": {
+              addLog(`Capturing step screenshot...`);
+              const scrPath = await this.takeScreenshot(p, testRunId, `step-${currentStepIndex}`);
+              if (scrPath) {
+                logs.push({
+                  message: scrPath,
+                  level: "screenshot",
+                  timestamp: new Date().toISOString(),
+                  step_index: currentStepIndex,
+                });
+                addLog(`📸 Captured screenshot successfully`);
+              }
+              break;
+            }
+            case "sleep": {
+              const ms = parseInt(finalValue) || 2000;
+              addLog(`Sleeping for ${ms}ms`);
+              await p.waitForTimeout(ms);
+              break;
+            }
+            case "wait-visible":
+              addLog(`Waiting for ${selector} to become visible`);
+              await p.locator(selector).waitFor({ state: "visible", timeout: 15000 });
+              break;
+            case "assert-hidden":
+              addLog(`Asserting element hidden: ${selector}`);
+              await p.locator(selector).waitFor({ state: "hidden", timeout: 5000 }).catch(() => {
+                throw new Error(`Assertion failed: Element "${selector}" is not hidden`);
+              });
+              addLog(`✅ Element assertion passed: "${selector}" is hidden`);
+              break;
+            case "assert-contains": {
+              addLog(`Asserting element "${selector}" contains text: "${finalValue}"`);
+              await p.locator(selector).waitFor({ state: "visible", timeout: 5000 });
+              const content = await p.locator(selector).textContent();
+              if (!content || !content.includes(finalValue)) {
+                throw new Error(`Assertion failed: Element "${selector}" does not contain text "${finalValue}"`);
+              }
+              addLog(`✅ Element assertion passed: "${selector}" contains text "${finalValue}"`);
+              break;
+            }
+            case "assert-title": {
+              addLog(`Asserting page title matches: "${finalValue}"`);
+              const currentTitle = await p.title();
+              if (currentTitle !== finalValue) {
+                throw new Error(`Assertion failed: Expected title to be "${finalValue}" but got "${currentTitle}"`);
+              }
+              addLog(`✅ Title assertion passed: matches "${finalValue}"`);
+              break;
+            }
             case "assert":
             case "verify": {
               addLog(`Asserting: ${selector || finalValue}`);

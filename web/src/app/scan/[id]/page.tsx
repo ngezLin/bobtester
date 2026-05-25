@@ -225,10 +225,10 @@ export default function ScanDetailPage() {
   }, [scan]);
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
       <Sidebar />
 
-      <main className="flex-1 p-10 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
         <div className="mx-auto max-w-6xl">
           <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>

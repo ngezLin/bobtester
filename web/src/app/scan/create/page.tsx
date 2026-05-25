@@ -139,9 +139,9 @@ export default function ScanCreatePage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
       <Sidebar />
-      <main className="flex-1 p-10 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
         <div className="mx-auto w-full max-w-3xl">
           <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -197,7 +197,7 @@ export default function ScanCreatePage() {
                 <span className="text-sm font-semibold text-gray-300">Select Scan Types</span>
                 <p className="text-gray-500 text-sm mt-1">Pick one or more security checks to include in this scan.</p>
               </div>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {scanOptions.map((option) => {
                   const isSelected = selectedOptions.includes(option.id);
                   return (

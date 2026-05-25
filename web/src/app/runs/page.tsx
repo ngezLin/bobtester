@@ -11,6 +11,7 @@ export default function RunsPage() {
   const [error, setError] = useState("");
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [zoomImage, setZoomImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchRuns(true);
@@ -52,12 +53,12 @@ export default function RunsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white font-sans">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white font-sans">
       <Sidebar />
 
-      <main className="flex-1 p-10 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
         <div className="max-w-6xl mx-auto">
-          <header className="mb-10 flex justify-between items-center">
+          <header className="mb-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold">Execution History</h1>
               <p className="text-gray-400 mt-2">Track the performance and results of your automation flows</p>
@@ -82,8 +83,8 @@ export default function RunsPage() {
               No runs executed yet. Start by running a test case.
             </div>
           ) : (
-            <div className="overflow-hidden bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl">
-              <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto bg-gray-900 border border-gray-800 rounded-3xl shadow-2xl">
+              <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
                   <tr className="bg-gray-800/50">
                     <th className="px-6 py-4 text-xs uppercase font-black text-gray-500 tracking-widest">ID</th>
@@ -141,7 +142,7 @@ export default function RunsPage() {
           {selectedRun && (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-auto">
               <div className="bg-gray-900 border border-gray-800 w-full max-w-6xl rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
-                <div className="p-8 border-b border-gray-800 flex justify-between items-center bg-gray-800/30">
+                <div className="p-4 sm:p-8 border-b border-gray-800 flex justify-between items-center bg-gray-800/30">
                   <div className="flex items-center gap-4">
                     <div className={`w-3 h-3 rounded-full ${
                       selectedRun.status === "safe" || selectedRun.status === "passed" ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" :
@@ -162,7 +163,7 @@ export default function RunsPage() {
                   </button>
                 </div>
                 
-                <div className="p-8 grid lg:grid-cols-3 gap-8 max-h-[75vh] overflow-auto">
+                <div className="p-4 sm:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 max-h-[75vh] overflow-auto">
                   {/* Security Report Section */}
                   <div className="space-y-6 lg:border-r lg:border-gray-800 lg:pr-8">
                     <div className="flex items-center justify-between">
@@ -210,13 +211,14 @@ export default function RunsPage() {
                       {selectedRun.logs ? (typeof selectedRun.logs === "string" ? JSON.parse(selectedRun.logs) : selectedRun.logs).map((log: any, i: number) => (
                         log.level === "screenshot" ? (
                           <div key={i} className="mt-2 mb-1">
-                            <div className="text-[9px] uppercase tracking-widest text-gray-600 mb-1.5 font-sans">
-                              📸 Step {(log.step_index ?? 0) + 1} — Failure Screenshot
+                            <div className="text-[9px] uppercase tracking-widest text-gray-400 mb-1.5 font-sans font-bold">
+                              📸 Step {(log.step_index ?? 0) + 1} — Captured Screenshot
                             </div>
                             <img
                               src={log.message}
-                              alt={`Step ${(log.step_index ?? 0) + 1} failure`}
-                              className="w-full rounded-xl border border-rose-500/20 shadow-lg"
+                              onClick={() => setZoomImage(log.message)}
+                              alt={`Step ${(log.step_index ?? 0) + 1}`}
+                              className="w-full rounded-xl border border-gray-800 hover:border-blue-500/40 shadow-lg cursor-zoom-in hover:scale-[1.02] transition-all"
                             />
                           </div>
                         ) : (
@@ -246,8 +248,16 @@ export default function RunsPage() {
                               ? selectedRun.screenshot_path
                               : `${typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:4000" : "https://bobtester-u9xe.vercel.app"}/${selectedRun.screenshot_path}`
                           }
+                          onClick={() => {
+                            const srcUrl = selectedRun.screenshot_path.startsWith("data:")
+                              ? selectedRun.screenshot_path
+                              : selectedRun.screenshot_path.startsWith("http")
+                              ? selectedRun.screenshot_path
+                              : `${typeof window !== "undefined" && window.location.hostname === "localhost" ? "http://localhost:4000" : "https://bobtester-u9xe.vercel.app"}/${selectedRun.screenshot_path}`;
+                            setZoomImage(srcUrl);
+                          }}
                           alt="Run Screenshot"
-                          className="w-full h-auto cursor-zoom-in"
+                          className="w-full h-auto cursor-zoom-in hover:scale-[1.01] transition-transform duration-350"
                         />
                       </div>
                     ) : (
@@ -261,18 +271,38 @@ export default function RunsPage() {
             </div>
           )}
           
-          <ConfirmModal
-            isOpen={confirmDeleteId !== null}
-            title="Delete Run History"
-            message="Are you sure you want to delete this run from your execution history? This action cannot be undone."
-            confirmText="Delete"
-            cancelText="Cancel"
-            onConfirm={handleConfirmDelete}
-            onClose={() => setConfirmDeleteId(null)}
-            isDanger={true}
-          />
-        </div>
-      </main>
-    </div>
-  );
+        <ConfirmModal
+          isOpen={confirmDeleteId !== null}
+          title="Delete Run History"
+          message="Are you sure you want to delete this run from your execution history? This action cannot be undone."
+          confirmText="Delete"
+          cancelText="Cancel"
+          onConfirm={handleConfirmDelete}
+          onClose={() => setConfirmDeleteId(null)}
+          isDanger={true}
+        />
+
+        {/* Lightbox Zoom Modal */}
+        {zoomImage && (
+          <div
+            onClick={() => setZoomImage(null)}
+            className="fixed inset-0 bg-black/95 z-[60] flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+          >
+            <button
+              onClick={() => setZoomImage(null)}
+              className="absolute top-6 right-6 text-white text-4xl font-bold bg-black/60 hover:bg-black/95 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-colors border border-gray-800"
+            >
+              ×
+            </button>
+            <img
+              src={zoomImage}
+              alt="Enlarged visual logs snapshot"
+              className="max-w-full max-h-[92vh] object-contain rounded-2xl border border-gray-800 shadow-2xl animate-in zoom-in-95 duration-200"
+            />
+          </div>
+        )}
+      </div>
+    </main>
+  </div>
+);
 }

@@ -145,10 +145,10 @@ export default function ConfigPage() {
   if (loading) return <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">Loading...</div>;
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
       <Sidebar />
 
-      <main className="flex-1 p-10 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
         <div className="max-w-7xl mx-auto">
           <Link href="/cases" className="text-blue-500 hover:text-blue-400 mb-6 inline-block font-medium">
             ← Back to All Cases

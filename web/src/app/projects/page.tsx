@@ -87,9 +87,9 @@ export default function ProjectsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-gray-950 text-white">
+      <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
         <Sidebar />
-        <main className="flex-1 p-10 flex items-center justify-center">
+        <main className="flex-1 p-4 sm:p-6 lg:p-10 flex items-center justify-center">
           <div className="p-8 text-gray-400 flex items-center gap-3"><span className="animate-spin">⏳</span> Loading projects...</div>
         </main>
       </div>
@@ -97,9 +97,9 @@ export default function ProjectsPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-gray-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
       <Sidebar />
-      <main className="flex-1 p-10 overflow-auto">
+      <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
         <div className="max-w-6xl mx-auto">
           <div className="flex justify-between items-center mb-8">
         <div>
