@@ -46,14 +46,26 @@ export class PlaywrightService {
         await page.waitForTimeout(450);
       } catch (_) {}
 
-      const fileName = `test-${testRunId}-${name}-${Date.now()}.png`;
-      const storageDir = path.join(process.cwd(), "storage", "screenshots");
-      if (!fs.existsSync(storageDir)) {
-        fs.mkdirSync(storageDir, { recursive: true });
+      // Capture screenshot into memory buffer (JPEG quality 75 produces crisp, lightweight images ~35-50KB)
+      const buffer = await page.screenshot({
+        type: "jpeg",
+        quality: 75,
+        timeout: 5000,
+      });
+
+      // Best effort local storage save for local dev inspection
+      try {
+        const storageDir = path.join(process.cwd(), "storage", "screenshots");
+        if (!fs.existsSync(storageDir)) {
+          fs.mkdirSync(storageDir, { recursive: true });
+        }
+        const fileName = `test-${testRunId}-${name}-${Date.now()}.jpg`;
+        fs.writeFileSync(path.join(storageDir, fileName), buffer);
+      } catch (_) {
+        // Read-only filesystem in serverless environments (Vercel/AWS Lambda) — safely ignore
       }
-      const filePath = path.join(storageDir, fileName);
-      await page.screenshot({ path: filePath, timeout: 5000 });
-      return `storage/screenshots/${fileName}`;
+
+      return `data:image/jpeg;base64,${buffer.toString("base64")}`;
     } catch (e: any) {
       console.warn(`⚠️ [Playwright] Failed to take screenshot: ${e.message}`);
       return undefined;
@@ -440,10 +452,14 @@ export class PlaywrightService {
           // 📸 Capture a failure screenshot embedded in logs so the user sees
           // the exact page state at the moment of failure.
           try {
-            const failBuffer = await p.screenshot({ type: "png", timeout: 5000 });
+            const failBuffer = await p.screenshot({
+              type: "jpeg",
+              quality: 75,
+              timeout: 5000,
+            });
             const failBase64 = failBuffer.toString("base64");
             logs.push({
-              message: `data:image/png;base64,${failBase64}`,
+              message: `data:image/jpeg;base64,${failBase64}`,
               level: "screenshot",
               timestamp: new Date().toISOString(),
               step_index: currentStepIndex,
@@ -460,12 +476,28 @@ export class PlaywrightService {
       addLog("Test execution completed successfully");
       if (p) {
         screenshotPath = await this.takeScreenshot(p, testRunId, "success");
+        if (screenshotPath) {
+          logs.push({
+            message: screenshotPath,
+            level: "screenshot",
+            timestamp: new Date().toISOString(),
+            step_index: "result",
+          });
+        }
       }
     } catch (error: any) {
       success = false;
       addLog(`Execution error: ${error.message || error}`, "error");
       if (page) {
         screenshotPath = await this.takeScreenshot(page, testRunId, "error");
+        if (screenshotPath) {
+          logs.push({
+            message: screenshotPath,
+            level: "screenshot",
+            timestamp: new Date().toISOString(),
+            step_index: "result",
+          });
+        }
       }
     } finally {
       if (browser) {

@@ -302,12 +302,20 @@ export default function RunsPage() {
                               return (
                                 <div key={i} className="mt-2 mb-1 bg-zinc-900 p-2.5 rounded-xl border border-zinc-800">
                                   <div className="text-[9px] uppercase tracking-widest text-zinc-400 mb-1.5 font-sans font-bold">
-                                    📸 Step {(log.step_index ?? 0) + 1} — Captured Screenshot
+                                    {log.step_index === "result"
+                                      ? "📸 Final Result Screenshot"
+                                      : typeof log.step_index === "number"
+                                      ? `📸 Step ${log.step_index + 1} — Captured Screenshot`
+                                      : "📸 Captured Screenshot"}
                                   </div>
                                   <img
                                     src={imgUrl}
                                     onClick={() => setZoomImage(imgUrl)}
-                                    alt={`Step ${(log.step_index ?? 0) + 1}`}
+                                    alt={
+                                      log.step_index === "result"
+                                        ? "Final Result Screenshot"
+                                        : `Step ${(log.step_index ?? 0) + 1}`
+                                    }
                                     className="w-full rounded-lg border border-zinc-700 hover:border-red-500/60 shadow-md cursor-zoom-in hover:scale-[1.01] transition-all"
                                   />
                                 </div>
@@ -352,41 +360,54 @@ export default function RunsPage() {
                         Result Screenshot
                       </h3>
                     </div>
-                    {selectedRun.screenshot_path ? (
-                      <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-sm relative group bg-zinc-50">
-                        <img
-                          src={
-                            selectedRun.screenshot_path.startsWith("data:")
-                              ? selectedRun.screenshot_path
-                              : selectedRun.screenshot_path.startsWith("http")
-                              ? selectedRun.screenshot_path
-                              : `${
-                                  typeof window !== "undefined" && window.location.hostname === "localhost"
-                                    ? "http://localhost:4000"
-                                    : "https://bobtester-u9xe.vercel.app"
-                                }/${selectedRun.screenshot_path}`
-                          }
-                          onClick={() => {
-                            const srcUrl = selectedRun.screenshot_path.startsWith("data:")
-                              ? selectedRun.screenshot_path
-                              : selectedRun.screenshot_path.startsWith("http")
-                              ? selectedRun.screenshot_path
-                              : `${
-                                  typeof window !== "undefined" && window.location.hostname === "localhost"
-                                    ? "http://localhost:4000"
-                                    : "https://bobtester-u9xe.vercel.app"
-                                }/${selectedRun.screenshot_path}`;
-                            setZoomImage(srcUrl);
-                          }}
-                          alt="Run Screenshot"
-                          className="w-full h-auto cursor-zoom-in hover:scale-[1.01] transition-transform duration-200"
-                        />
-                      </div>
-                    ) : (
-                      <div className="bg-zinc-50 rounded-2xl p-12 border border-zinc-200 flex flex-col items-center justify-center text-zinc-400 text-xs italic">
-                        <span>No screenshot captured for this run</span>
-                      </div>
-                    )}
+                    {(() => {
+                      const parsedLogs: any[] = Array.isArray(selectedRun.logs)
+                        ? selectedRun.logs
+                        : typeof selectedRun.logs === "string"
+                        ? (() => {
+                            try {
+                              return JSON.parse(selectedRun.logs);
+                            } catch {
+                              return [];
+                            }
+                          })()
+                        : [];
+
+                      const resultScreenshotFromLogs = [...parsedLogs]
+                        .reverse()
+                        .find((l: any) => l.level === "screenshot")?.message;
+
+                      const rawScreenshot =
+                        selectedRun.screenshot_path || resultScreenshotFromLogs;
+
+                      if (!rawScreenshot) {
+                        return (
+                          <div className="bg-zinc-50 rounded-2xl p-12 border border-zinc-200 flex flex-col items-center justify-center text-zinc-400 text-xs italic">
+                            <span>No screenshot captured for this run</span>
+                          </div>
+                        );
+                      }
+
+                      const srcUrl =
+                        rawScreenshot.startsWith("data:") || rawScreenshot.startsWith("http")
+                          ? rawScreenshot
+                          : `${
+                              typeof window !== "undefined" && window.location.hostname === "localhost"
+                                ? "http://localhost:4000"
+                                : "https://bobtester-u9xe.vercel.app"
+                            }/${rawScreenshot}`;
+
+                      return (
+                        <div className="rounded-2xl overflow-hidden border border-zinc-200 shadow-sm relative group bg-zinc-50">
+                          <img
+                            src={srcUrl}
+                            onClick={() => setZoomImage(srcUrl)}
+                            alt="Run Screenshot"
+                            className="w-full h-auto cursor-zoom-in hover:scale-[1.01] transition-transform duration-200"
+                          />
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
               </div>

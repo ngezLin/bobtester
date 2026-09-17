@@ -247,7 +247,7 @@ export class ProjectController {
             .update({
               status: finalStatus,
               execution_time: executionTime,
-              screenshot_path: screenshot || null,
+              screenshot_path: (screenshot && screenshot.length <= 255) ? screenshot : null,
               logs: logs,
               vulnerabilities: vulnerabilities
             })
