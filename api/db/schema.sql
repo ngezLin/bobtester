@@ -11,6 +11,14 @@ DROP TABLE IF EXISTS test_cases;
 DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS users;
 
+-- Drop enum types if they exist
+DROP TYPE IF EXISTS test_run_status CASCADE;
+DROP TYPE IF EXISTS scan_status CASCADE;
+DROP TYPE IF EXISTS scan_type CASCADE;
+DROP TYPE IF EXISTS severity CASCADE;
+DROP TYPE IF EXISTS finding_category CASCADE;
+DROP TYPE IF EXISTS confidence CASCADE;
+
 CREATE TYPE test_run_status AS ENUM (
     'passed',
     'failed',
@@ -45,6 +53,7 @@ CREATE TABLE test_cases (
     name VARCHAR(255) NOT NULL,
     target_url TEXT NOT NULL,
     steps JSONB NOT NULL,
+    folder VARCHAR(255) DEFAULT 'General',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -227,4 +236,4 @@ CREATE TABLE reports (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-ALTER TABLE test_cases ADD COLUMN folder VARCHAR(255) DEFAULT 'General';
+ALTER TABLE test_cases ADD COLUMN IF NOT EXISTS folder VARCHAR(255) DEFAULT 'General';

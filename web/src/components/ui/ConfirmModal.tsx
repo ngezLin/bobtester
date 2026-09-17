@@ -24,27 +24,27 @@ export default function ConfirmModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-gray-900 border border-gray-800 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div className="bg-white border border-zinc-200 w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
         <div className="p-8 space-y-4">
           <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
-              isDanger ? "bg-rose-500/10 text-rose-500" : "bg-blue-500/10 text-blue-500"
+            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-lg ${
+              isDanger ? "bg-red-50 text-red-600 border border-red-200" : "bg-red-50 text-red-600 border border-red-200"
             }`}>
               ⚠️
             </div>
-            <h3 className="text-xl font-bold text-white">{title}</h3>
+            <h3 className="text-xl font-semibold text-zinc-900">{title}</h3>
           </div>
           
-          <p className="text-sm text-gray-400 leading-relaxed">{message}</p>
+          <p className="text-sm text-zinc-600 leading-relaxed">{message}</p>
         </div>
 
-        <div className="p-6 bg-gray-950/40 border-t border-gray-800 flex justify-end gap-3">
+        <div className="p-6 bg-zinc-50 border-t border-zinc-100 flex justify-end gap-3">
           {cancelText && (
             <button
               type="button"
               onClick={onClose}
-              className="px-5 py-2 text-xs font-bold text-gray-400 hover:text-white transition-all rounded-lg"
+              className="rounded-full px-5 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-200 transition-all"
             >
               {cancelText}
             </button>
@@ -52,11 +52,7 @@ export default function ConfirmModal({
           <button
             type="button"
             onClick={onConfirm}
-            className={`px-5 py-2 text-xs font-bold text-white rounded-lg transition-all shadow-md active:scale-95 ${
-              isDanger 
-                ? "bg-rose-600 hover:bg-rose-700 shadow-rose-600/10" 
-                : "bg-blue-600 hover:bg-blue-700 shadow-blue-600/10"
-            }`}
+            className="rounded-full px-5 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-all shadow-sm shadow-red-600/20 active:scale-95"
           >
             {confirmText}
           </button>

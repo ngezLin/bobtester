@@ -107,6 +107,78 @@ export class AssetController {
     }
   }
 
+  static async updateAsset(req: AuthRequest, res: Response) {
+    const { id } = req.params; // asset_id
+    const { name, data, is_negative } = req.body;
+    const userId = req.user?.id;
+
+    if (!name || !data) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Name and data are required" });
+    }
+
+    try {
+      // 1. Fetch the asset to find its case_id
+      const { data: assets, error: assetError } = await supabase
+        .from("test_assets")
+        .select("case_id")
+        .eq("id", id);
+
+      if (assetError || !assets || assets.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Asset not found" });
+      }
+
+      const caseId = assets[0].case_id;
+
+      // 2. Verify user ownership of the parent test_case
+      const { data: cases, error: caseError } = await supabase
+        .from("test_cases")
+        .select("id")
+        .eq("id", caseId)
+        .eq("user_id", userId);
+
+      if (caseError || !cases || cases.length === 0) {
+        return res
+          .status(404)
+          .json({ success: false, message: "Asset not found or unauthorized" });
+      }
+
+      // 3. Update the asset
+      const { data: updated, error: updateError } = await supabase
+        .from("test_assets")
+        .update({
+          name,
+          data: data,
+          is_negative: is_negative !== undefined ? is_negative : false,
+        })
+        .eq("id", id)
+        .select();
+
+      if (updateError) {
+        console.error("Update asset error:", updateError);
+        return res.status(500).json({
+          success: false,
+          message: "Server error during asset update",
+        });
+      }
+
+      res.json({
+        success: true,
+        message: "Asset updated successfully",
+        asset: updated[0],
+      });
+    } catch (error: any) {
+      console.error("Update asset error:", error);
+      res.status(500).json({
+        success: false,
+        message: "Server error during asset update",
+      });
+    }
+  }
+
   static async deleteAsset(req: AuthRequest, res: Response) {
     const { id } = req.params; // asset_id
     const userId = req.user?.id;

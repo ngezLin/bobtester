@@ -37,6 +37,7 @@ router.post("/cases/record", authMiddleware, CaseController.record);
 // --- ASSET ROUTES (Protected) ---
 router.post("/assets/case/:id", authMiddleware, AssetController.addAsset);
 router.get("/assets/case/:id", authMiddleware, AssetController.getAssetsByCase);
+router.put("/assets/:id", authMiddleware, AssetController.updateAsset);
 router.delete("/assets/:id", authMiddleware, AssetController.deleteAsset);
 
 // --- RUN ROUTES (Protected) ---

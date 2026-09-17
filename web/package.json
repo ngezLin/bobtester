@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node -e \"const fs = require('fs'), path = require('path'); const src = path.join('node_modules', '@tailwindcss', 'oxide-win32-x64-msvc', 'tailwindcss-oxide.win32-x64-msvc.node'); const dst = path.join('node_modules', '@tailwindcss', 'oxide', 'tailwindcss-oxide.win32-x64-msvc.node'); if (fs.existsSync(src) && !fs.existsSync(dst)) fs.copyFileSync(src, dst);\""
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -25,5 +26,8 @@
     "eslint-config-next": "16.2.6",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.0.0"
   }
 }

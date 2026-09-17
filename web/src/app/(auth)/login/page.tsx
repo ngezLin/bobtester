@@ -35,43 +35,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-950 p-4">
-      <div className="w-full max-w-md bg-gray-900 border border-gray-800 rounded-2xl shadow-2xl overflow-hidden">
-        <div className="p-8">
+    <div className="min-h-screen flex items-center justify-center bg-[#fafafa] p-4 text-zinc-900">
+      <div className="w-full max-w-md bg-white border border-zinc-200/90 rounded-3xl shadow-sm overflow-hidden">
+        <div className="p-8 sm:p-10">
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center mb-4 shadow-lg shadow-blue-500/20">
-              <span className="text-white text-3xl font-bold">B</span>
+            <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center mb-4 shadow-md shadow-red-500/20">
+              <span className="text-white text-2xl font-bold">B</span>
             </div>
-            <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
-            <p className="text-gray-400 mt-2">Sign in to BobTester</p>
+            <h1 className="text-2xl font-bold tracking-tight text-zinc-900">Welcome Back</h1>
+            <p className="text-xs text-zinc-500 mt-1">Sign in to your BobTester dashboard</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-3 rounded-lg text-sm text-center">
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs font-semibold text-center">
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Email Address</label>
+              <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                Email Address
+              </label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm"
                 placeholder="you@example.com"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Password</label>
+              <label className="block text-xs font-semibold text-zinc-700 uppercase tracking-wider mb-2">
+                Password
+              </label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 text-sm"
                 placeholder="••••••••"
                 required
               />
@@ -80,16 +84,23 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all shadow-md shadow-red-500/20 active:scale-95 disabled:opacity-50 text-sm mt-2 flex items-center justify-center gap-2"
             >
-              {loading ? "Signing in..." : "Sign In"}
+              {loading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <span>Sign In</span>
+              )}
             </button>
           </form>
 
-          <div className="mt-8 text-center">
-            <p className="text-gray-400">
+          <div className="mt-8 text-center pt-6 border-t border-zinc-100">
+            <p className="text-xs text-zinc-500">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="text-blue-500 hover:text-blue-400 font-medium">
+              <Link href="/register" className="text-red-600 hover:text-red-700 font-bold transition-colors">
                 Create one
               </Link>
             </p>

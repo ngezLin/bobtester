@@ -233,7 +233,8 @@ export class ProjectController {
             testRunId,
             testCase.steps,
             asset.data,
-            testCase.id
+            testCase.id,
+            testCase.target_url
           );
           const executionTime = Date.now() - startTime;
 

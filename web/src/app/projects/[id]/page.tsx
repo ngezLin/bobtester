@@ -51,10 +51,13 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   if (loading) {
     return (
-      <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
+      <div className="flex flex-col md:flex-row min-h-screen bg-[#fafafa] text-zinc-900">
         <Sidebar />
         <main className="flex-1 p-4 sm:p-6 lg:p-10 flex items-center justify-center">
-          <div className="p-8 text-gray-400 flex items-center gap-3"><span className="animate-spin">⏳</span> Loading project details...</div>
+          <div className="flex flex-col items-center justify-center py-24 text-zinc-400">
+            <div className="w-9 h-9 border-2 border-red-600 border-t-transparent rounded-full animate-spin mb-4" />
+            <p className="text-xs uppercase tracking-widest font-medium">Loading project details...</p>
+          </div>
         </main>
       </div>
     );
@@ -62,121 +65,162 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
 
   if (!project) {
     return (
-      <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
+      <div className="flex flex-col md:flex-row min-h-screen bg-[#fafafa] text-zinc-900">
         <Sidebar />
         <main className="flex-1 p-4 sm:p-6 lg:p-10 flex items-center justify-center">
-          <div className="p-8 text-red-400">Project not found.</div>
+          <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl text-center text-sm font-medium">
+            Project not found.
+          </div>
         </main>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen bg-gray-950 text-white">
+    <div className="flex flex-col md:flex-row min-h-screen bg-[#fafafa] text-zinc-900">
       <Sidebar />
       <main className="flex-1 p-4 sm:p-6 lg:p-10 overflow-auto">
-        <div className="max-w-5xl mx-auto">
-          <div className="mb-6">
-        <Link href="/projects" className="text-gray-500 hover:text-white transition-colors text-sm flex items-center gap-2">
-          ← Back to Projects
-        </Link>
-      </div>
-
-      <div className="bg-gray-900 border border-gray-800 rounded-2xl p-6 sm:p-8 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <span className="text-3xl">📁</span>
-            <h1 className="text-3xl font-bold text-white tracking-tight">{project.name}</h1>
+        <div className="max-w-5xl mx-auto space-y-8">
+          <div>
+            <Link
+              href="/projects"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-500 hover:text-zinc-900 transition-colors"
+            >
+              <span>←</span>
+              <span>Back to Projects</span>
+            </Link>
           </div>
-          <p className="text-gray-400 max-w-2xl">{project.description || "No description provided."}</p>
-        </div>
-        
-        <div className="flex flex-col items-stretch sm:items-end w-full sm:w-auto">
-          <button
-            onClick={handleRunSuite}
-            disabled={running || cases.length === 0}
-            className="bg-green-600 hover:bg-green-500 disabled:bg-gray-800 disabled:text-gray-600 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 flex items-center justify-center gap-2 text-lg w-full sm:w-auto"
-          >
-            {running ? "🚀 Starting Suite..." : "▶️ Run Suite"}
-          </button>
-          {cases.length === 0 && (
-            <span className="text-xs text-gray-500 mt-2 text-center sm:text-right">Add test cases first</span>
-          )}
-        </div>
-      </div>
 
-      {runResult && (
-        <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 p-4 rounded-xl mb-8 flex items-center justify-between">
-          <span>{runResult.message}</span>
-          <Link href="/runs" className="text-sm font-bold hover:underline">
-            View Live Results →
-          </Link>
-        </div>
-      )}
-
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-white">Test Suite ({cases.length} Cases)</h2>
-        <Link
-          href={`/record?project_id=${id}`}
-          className="bg-blue-600/10 text-blue-400 hover:bg-blue-600 hover:text-white px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2"
-        >
-          <span>+</span> Add Test Case
-        </Link>
-      </div>
-
-      {cases.length === 0 ? (
-        <div className="border border-dashed border-gray-800 rounded-xl p-12 text-center">
-          <p className="text-gray-500 mb-6">No test cases in this project yet.</p>
-          <Link
-            href={`/record?project_id=${id}`}
-            className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-lg shadow-blue-500/20"
-          >
-            Record First Case
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-10">
-          {Object.entries(
-            cases.reduce((acc: any, c: any) => {
-              const f = c.folder || "General";
-              if (!acc[f]) acc[f] = [];
-              acc[f].push(c);
-              return acc;
-            }, {})
-          ).map(([folderName, folderCases]: [string, any]) => (
-            <div key={folderName}>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-blue-500 text-lg">📂</span>
-                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest">{folderName}</h3>
-                <div className="flex-1 h-px bg-gray-800 ml-4"></div>
+          <div className="bg-white border border-zinc-200/90 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div className="flex items-start gap-4">
+              <div className="w-14 h-14 bg-red-50 text-red-600 border border-red-100 rounded-2xl flex items-center justify-center text-2xl shrink-0">
+                📁
               </div>
-              
-              <div className="space-y-3">
-                {folderCases.map((c: any) => (
-                  <div key={c.id} className="bg-gray-900 border border-gray-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 group hover:border-gray-700 transition-colors">
-                    <div className="w-full sm:w-auto">
-                      <Link href={`/cases/${c.id}/config`} className="text-lg font-bold text-white hover:text-blue-400 transition-colors">
-                        {c.name}
-                      </Link>
-                      <div className="text-sm text-gray-500 mt-1 truncate max-w-md font-mono">
-                        {c.target_url}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4 w-full sm:w-auto">
-                      <Link 
-                        href={`/cases/${c.id}/config`}
-                        className="text-gray-400 hover:text-white bg-gray-800 px-3 py-1.5 rounded text-sm transition-colors text-center w-full sm:w-auto"
-                      >
-                        Edit / Configure
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-zinc-900 tracking-tight">
+                  {project.name}
+                </h1>
+                <p className="text-sm text-zinc-500 mt-1 max-w-2xl">
+                  {project.description || "No description provided."}
+                </p>
               </div>
             </div>
-          ))}
-        </div>
-      )}
+
+            <div className="flex flex-col items-stretch sm:items-end w-full sm:w-auto shrink-0">
+              <button
+                onClick={handleRunSuite}
+                disabled={running || cases.length === 0}
+                className="bg-red-600 hover:bg-red-700 disabled:bg-zinc-200 disabled:text-zinc-400 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-md shadow-red-500/25 active:scale-95 flex items-center justify-center gap-2 text-sm w-full sm:w-auto"
+              >
+                {running ? (
+                  <>
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>Starting Suite...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>▶</span>
+                    <span>Run All Tests</span>
+                  </>
+                )}
+              </button>
+              {cases.length === 0 && (
+                <span className="text-xs text-zinc-400 mt-2 text-center sm:text-right">
+                  Add test cases first
+                </span>
+              )}
+            </div>
+          </div>
+
+          {runResult && (
+            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center justify-between text-sm shadow-xs">
+              <div className="flex items-center gap-2 font-medium">
+                <span className="text-emerald-600">✓</span>
+                <span>{runResult.message}</span>
+              </div>
+              <Link href="/runs" className="text-xs font-bold text-emerald-700 hover:underline">
+                View Live Results →
+              </Link>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center pb-2">
+            <h2 className="text-xl font-bold text-zinc-900">
+              Test Suite ({cases.length} Cases)
+            </h2>
+            <Link
+              href={`/record?project_id=${id}`}
+              className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
+            >
+              <span>+</span>
+              <span>Add Test Case</span>
+            </Link>
+          </div>
+
+          {cases.length === 0 ? (
+            <div className="bg-white border border-dashed border-zinc-300 rounded-3xl p-16 text-center shadow-xs">
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 border border-red-100">
+                📄
+              </div>
+              <p className="text-zinc-500 mb-6 text-sm">No test cases in this project yet.</p>
+              <Link
+                href={`/record?project_id=${id}`}
+                className="inline-block bg-red-600 hover:bg-red-700 text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md shadow-red-500/20 text-sm active:scale-95"
+              >
+                Record First Case
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(
+                cases.reduce((acc: any, c: any) => {
+                  const f = c.folder || "General";
+                  if (!acc[f]) acc[f] = [];
+                  acc[f].push(c);
+                  return acc;
+                }, {})
+              ).map(([folderName, folderCases]: [string, any]) => (
+                <div key={folderName}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <span className="text-base">📂</span>
+                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                      {folderName}
+                    </h3>
+                    <div className="flex-1 h-px bg-zinc-200 ml-3" />
+                  </div>
+
+                  <div className="space-y-3">
+                    {folderCases.map((c: any) => (
+                      <div
+                        key={c.id}
+                        className="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 group hover:border-red-300 hover:shadow-xs transition-all"
+                      >
+                        <div className="w-full sm:w-auto">
+                          <Link
+                            href={`/cases/${c.id}/config`}
+                            className="text-base font-bold text-zinc-900 group-hover:text-red-600 transition-colors"
+                          >
+                            {c.name}
+                          </Link>
+                          <div className="text-xs text-zinc-400 mt-1 truncate max-w-md font-mono">
+                            {c.target_url}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                          <Link
+                            href={`/cases/${c.id}/config`}
+                            className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-4 py-2 rounded-xl text-xs font-semibold transition-colors text-center w-full sm:w-auto border border-zinc-200/50"
+                          >
+                            Edit / Configure
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
 

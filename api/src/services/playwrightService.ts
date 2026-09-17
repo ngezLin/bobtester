@@ -41,11 +41,19 @@ export class PlaywrightService {
     name: string,
   ): Promise<string | undefined> {
     try {
-      // Capture screenshot in-memory as a Buffer
-      const buffer = await page.screenshot({ type: "png", timeout: 5000 });
-      // Convert to Base64 Data URI
-      const base64 = buffer.toString("base64");
-      return `data:image/png;base64,${base64}`;
+      // Give CSS transitions (modal entrance/exit fades, layout shifts) time to settle into final state
+      try {
+        await page.waitForTimeout(450);
+      } catch (_) {}
+
+      const fileName = `test-${testRunId}-${name}-${Date.now()}.png`;
+      const storageDir = path.join(process.cwd(), "storage", "screenshots");
+      if (!fs.existsSync(storageDir)) {
+        fs.mkdirSync(storageDir, { recursive: true });
+      }
+      const filePath = path.join(storageDir, fileName);
+      await page.screenshot({ path: filePath, timeout: 5000 });
+      return `storage/screenshots/${fileName}`;
     } catch (e: any) {
       console.warn(`⚠️ [Playwright] Failed to take screenshot: ${e.message}`);
       return undefined;
@@ -57,6 +65,7 @@ export class PlaywrightService {
     steps: any[],
     assetData: any = {},
     caseId?: number,
+    targetUrl?: string,
   ): Promise<{
     success: boolean;
     screenshot?: string;
@@ -99,6 +108,30 @@ export class PlaywrightService {
           addLog(`Failed to parse asset data string: ${e.message}`, "warn");
           assetData = {};
         }
+      }
+
+      // Fallback: If targetUrl was not passed directly but caseId is provided, attempt to fetch target_url
+      let resolvedTargetUrl = targetUrl;
+      if (!resolvedTargetUrl && caseId) {
+        try {
+          const { data } = await supabase
+            .from("test_cases")
+            .select("target_url")
+            .eq("id", caseId)
+            .single();
+          if (data?.target_url) resolvedTargetUrl = data.target_url;
+        } catch (_) {}
+      }
+
+      // Check if steps start with a "goto" action. If not, auto-prepend navigation to resolvedTargetUrl
+      const hasInitialGoto =
+        Array.isArray(steps) && steps.length > 0 && steps[0]?.action === "goto";
+      if (!hasInitialGoto && resolvedTargetUrl) {
+        addLog(`Auto-navigating to target URL: ${resolvedTargetUrl}`);
+        steps = [
+          { action: "goto", value: resolvedTargetUrl },
+          ...(Array.isArray(steps) ? steps : []),
+        ];
       }
 
       addLog("Launching browser...");
@@ -196,13 +229,18 @@ export class PlaywrightService {
 
         // Parameter substitution: replace [varName] with assetData.varName
         let finalValue = value;
-        if (value && value.includes("[") && value.includes("]")) {
+        if (value && typeof value === "string" && value.includes("[") && value.includes("]")) {
           const varName = value.match(/\[(.*?)\]/)?.[1];
-          if (varName && assetData[varName] !== undefined) {
-            finalValue = value.replace(`[${varName}]`, assetData[varName]);
-            addLog(
-              `Substituted variable [${varName}] with provided asset data`,
-            );
+          if (varName) {
+            if (assetData && assetData[varName] !== undefined) {
+              finalValue = value.replace(`[${varName}]`, String(assetData[varName]));
+              addLog(`Substituted [${varName}] with asset value`);
+            } else {
+              addLog(
+                `⚠️ Variable [${varName}] was not found in the selected Data Set. The literal text "${value}" will be typed.`,
+                "warn",
+              );
+            }
           }
         }
 
@@ -217,11 +255,57 @@ export class PlaywrightService {
               break;
             case "fill":
               addLog(`Filling ${selector} with security payload or value`);
-              await p.locator(selector).fill(finalValue || "");
+              try {
+                await p.locator(selector).fill(finalValue || "");
+              } catch (fillErr: any) {
+                if (fillErr.message && fillErr.message.includes("strict mode violation")) {
+                  addLog(
+                    `⚠️ Multiple elements matched ${selector}. Attempting to fill the active/last visible element...`,
+                    "warn",
+                  );
+                  const locators = p.locator(selector);
+                  const count = await locators.count();
+                  let filled = false;
+                  for (let i = count - 1; i >= 0; i--) {
+                    const item = locators.nth(i);
+                    if (await item.isVisible()) {
+                      await item.fill(finalValue || "");
+                      filled = true;
+                      break;
+                    }
+                  }
+                  if (!filled) throw fillErr;
+                } else {
+                  throw fillErr;
+                }
+              }
               break;
             case "click":
               addLog(`Clicking ${selector}`);
-              await p.locator(selector).click({ timeout: 15000 });
+              try {
+                await p.locator(selector).click({ timeout: 15000 });
+              } catch (clickErr: any) {
+                if (clickErr.message && clickErr.message.includes("strict mode violation")) {
+                  addLog(
+                    `⚠️ Multiple elements matched ${selector}. Attempting to click the active/last visible element...`,
+                    "warn",
+                  );
+                  const locators = p.locator(selector);
+                  const count = await locators.count();
+                  let clicked = false;
+                  for (let i = count - 1; i >= 0; i--) {
+                    const item = locators.nth(i);
+                    if (await item.isVisible()) {
+                      await item.click({ timeout: 15000 });
+                      clicked = true;
+                      break;
+                    }
+                  }
+                  if (!clicked) throw clickErr;
+                } else {
+                  throw clickErr;
+                }
+              }
               // If a confirm dialog was accepted during this click (e.g. form submit),
               // wait for the resulting page navigation to settle before moving on.
               if (dialogHandled) {
@@ -231,6 +315,12 @@ export class PlaywrightService {
                   addLog(`Page settled after dialog-triggered navigation`);
                 } catch (_) {
                   // Page might not navigate — that's fine, continue
+                }
+              } else if (selector && (selector.includes("button") || selector.includes("submit") || selector.includes("form") || selector.startsWith("a"))) {
+                try {
+                  await p.waitForLoadState("domcontentloaded", { timeout: 3000 });
+                } catch (_) {
+                  // Continue if no navigation occurs
                 }
               }
               break;

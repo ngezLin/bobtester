@@ -64,6 +64,8 @@ export class RunController {
           testRunId,
           testCase.steps,
           assetData,
+          testCase.id,
+          testCase.target_url,
         );
       const executionTime = Date.now() - startTime;
 
@@ -79,7 +81,7 @@ export class RunController {
         .update({
           status: finalStatus,
           execution_time: executionTime,
-          screenshot_path: screenshot || null,
+          screenshot_path: (screenshot && screenshot.length <= 255) ? screenshot : null,
           logs: JSON.stringify(logs),
           vulnerabilities: JSON.stringify(vulnerabilities),
         })
