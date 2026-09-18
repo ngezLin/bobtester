@@ -5,8 +5,14 @@ import { BrowserManager } from "./browser";
 import { DatasetManager, DatasetRow } from "./dataset";
 import { getConfig } from "./config";
 
+interface ReportStep {
+  title: string;
+  imagePath: string;
+}
+
 export class BobDriver {
   private datasetManager: DatasetManager;
+  private reportSteps: ReportStep[] = [];
 
   constructor() {
     this.datasetManager = DatasetManager.getInstance();
@@ -146,7 +152,15 @@ export class BobDriver {
 
     const page = await this.getPage();
     await page.screenshot({ path: fullPath, fullPage: false });
-    console.log(`📸 [Screenshot] Captured: ${path.relative(process.cwd(), fullPath)}`);
+    
+    const relativePath = path.relative(process.cwd(), fullPath);
+    console.log(`📸 [Screenshot] Captured: ${relativePath}`);
+    
+    this.reportSteps.push({
+      title: name || "Screenshot",
+      imagePath: relativePath
+    });
+    
     return fullPath;
   }
 
@@ -195,6 +209,47 @@ export class BobDriver {
     return this.getPage();
   }
 
+  private generateReport(success: boolean, elapsed: string, errorMsg?: string) {
+    if (this.reportSteps.length === 0) return;
+
+    const reportDir = path.resolve(process.cwd(), "reports");
+    if (!fs.existsSync(reportDir)) {
+      fs.mkdirSync(reportDir, { recursive: true });
+    }
+
+    const scriptPath = process.argv[1] || "";
+    let testName = "test_report";
+    if (scriptPath) {
+      const parts = scriptPath.split(path.sep);
+      if (parts.length >= 2) {
+         testName = parts[parts.length - 2];
+      } else {
+         testName = path.basename(scriptPath, ".js");
+      }
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const filename = `${testName}_${timestamp}.md`;
+    const fullPath = path.join(reportDir, filename);
+
+    let md = `# Report: ${testName}\n\n`;
+    md += `**Status:** ${success ? '✅ Passed' : '❌ Failed'}\n`;
+    md += `**Time:** ${elapsed}s\n\n`;
+
+    if (errorMsg) {
+      md += `**Error:**\n\`\`\`\n${errorMsg}\n\`\`\`\n\n`;
+    }
+
+    this.reportSteps.forEach((step, index) => {
+      const relativeImage = "../" + step.imagePath.replace(/\\/g, "/");
+      md += `### ${index + 1}. ${step.title}\n`;
+      md += `![${step.title}](${relativeImage})\n\n`;
+    });
+
+    fs.writeFileSync(fullPath, md);
+    console.log(`📄 [Report] Generated at: ${path.relative(process.cwd(), fullPath)}`);
+  }
+
   /**
    * Runner entrypoint for standalone test script execution
    */
@@ -204,6 +259,8 @@ export class BobDriver {
     console.log(`🚀 [BobTester] Starting Test Execution...`);
     console.log(`======================================================\n`);
 
+    this.reportSteps = []; // Reset steps for each run
+
     try {
       // Connect / launch browser
       await BrowserManager.getSession();
@@ -212,11 +269,15 @@ export class BobDriver {
       await testFn();
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+      this.generateReport(true, elapsed);
+      
       console.log(`\n======================================================`);
       console.log(`🎉 [BobTester] Test Finished Successfully in ${elapsed}s`);
       console.log(`======================================================\n`);
     } catch (err: any) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+      this.generateReport(false, elapsed, err.message || String(err));
+      
       console.error(`\n======================================================`);
       console.error(`💥 [BobTester] Test Execution Failed after ${elapsed}s:`);
       console.error(err.message || err);
