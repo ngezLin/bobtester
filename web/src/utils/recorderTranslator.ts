@@ -359,9 +359,7 @@ export function translateChromeRecorderToBob(
 
       if (step.type === "navigate") {
         initialUrl = step.url;
-        datasetVars.targetUrl = step.url;
-        stepLines.push(`const targetUrl = bob.get('targetUrl') || '${step.url}';`);
-        stepLines.push(`await bob.goto(targetUrl);`);
+        stepLines.push(`await bob.goto('${step.url}');`);
         continue;
       }
 
