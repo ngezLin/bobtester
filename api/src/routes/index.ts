@@ -7,9 +7,17 @@ import { ProjectController } from "../controllers/projectController";
 import { StatsController } from "../controllers/statsController";
 import { WebhookController } from "../controllers/webhookController";
 import { ScanController } from "../controllers/scanController";
+import { DataController } from "../controllers/dataController";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = Router();
+
+// --- DATA ROUTES (Protected) ---
+router.get("/data", authMiddleware, DataController.getFiles);
+router.get("/data/:filename", authMiddleware, DataController.getFile);
+router.post("/data/:filename", authMiddleware, DataController.saveFile);
+router.delete("/data/:filename", authMiddleware, DataController.deleteFile);
+
 
 // --- AUTH ROUTES ---
 router.post("/auth/register", AuthController.register);
