@@ -1,0 +1,21 @@
+{
+  "lalala1": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "standard_user",
+    "password": "secret_sauce",
+    "itemName": "Sauce Labs Backpack",
+    "is_negative": false
+  },
+  "lalala_locked": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "locked_out_user",
+    "password": "secret_sauce",
+    "is_negative": true
+  },
+  "lalala_glitch": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "performance_glitch_user",
+    "password": "secret_sauce",
+    "is_negative": false
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "bobtester",
+  "version": "1.0.0",
+  "description": "Modular Automation Testing Framework & Library SDK powered by Playwright and Browserless",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "bob": "./dist/cli.js",
+    "bobtester": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "playwright",
+    "browserless",
+    "automation",
+    "testing",
+    "framework",
+    "page-object-model"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "playwright": "^1.50.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.19",
+    "typescript": "^5.7.3"
+  }
+}

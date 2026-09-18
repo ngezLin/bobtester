@@ -1,7 +1,6 @@
 # Dependencies
-node_modules/
-api/node_modules/
-web/node_modules/
+**/node_modules/
+project/screenshots/
 
 # Environment Variables
 .env
