@@ -1,6 +1,66 @@
 import { Response } from "express";
 import { AuthRequest } from "../middleware/authMiddleware";
 import supabase from "../db";
+import path from "path";
+import fs from "fs";
+
+async function syncLocalProjectDatasets(caseId: string | number) {
+  try {
+    const projectsDir = path.resolve(process.cwd(), "../projects");
+    const datasetsJsonPath = path.join(projectsDir, "data", "datasets.json");
+    const commonDtsPath = path.join(projectsDir, "utils", "common.d.ts");
+
+    if (!fs.existsSync(path.dirname(datasetsJsonPath))) return;
+
+    const { data: assets } = await supabase
+      .from("test_assets")
+      .select("name, data")
+      .eq("case_id", caseId);
+
+    if (assets) {
+      const datasetsObj: Record<string, any> = {};
+      const methodNames = new Set<string>();
+
+      assets.forEach((a) => {
+        const cleanData = { ...a.data };
+        delete cleanData.targetUrl;
+        datasetsObj[a.name] = cleanData;
+        if (a.name && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(a.name)) {
+          methodNames.add(a.name);
+        }
+        if (cleanData.username && /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(cleanData.username)) {
+          methodNames.add(cleanData.username);
+        }
+      });
+
+      fs.writeFileSync(datasetsJsonPath, JSON.stringify(datasetsObj, null, 2), "utf-8");
+
+      const methodLines = Array.from(methodNames)
+        .map((m) => `  ${m}: () => Promise<void>;`)
+        .join("\n");
+
+      const dtsContent = `export interface CommonLogin {
+  (userType?: string): Promise<void>;
+${methodLines}
+  [key: string]: any;
+}
+
+export interface CommonUtils {
+  login: CommonLogin;
+  logout: () => Promise<void>;
+}
+
+declare const common: CommonUtils;
+export = common;
+`;
+      if (fs.existsSync(path.dirname(commonDtsPath))) {
+        fs.writeFileSync(commonDtsPath, dtsContent, "utf-8");
+      }
+    }
+  } catch (err: any) {
+    console.warn("Could not sync local project datasets:", err.message);
+  }
+}
 
 export class AssetController {
   static async addAsset(req: AuthRequest, res: Response) {
@@ -47,6 +107,8 @@ export class AssetController {
             message: "Server error during asset creation",
           });
       }
+
+      await syncLocalProjectDatasets(id as string);
 
       res.status(201).json({
         success: true,
@@ -165,6 +227,8 @@ export class AssetController {
         });
       }
 
+      await syncLocalProjectDatasets(caseId);
+
       res.json({
         success: true,
         message: "Asset updated successfully",
@@ -234,6 +298,8 @@ export class AssetController {
             message: "Server error during asset deletion",
           });
       }
+
+      await syncLocalProjectDatasets(caseId);
 
       res.json({
         success: true,

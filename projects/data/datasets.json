@@ -1,4 +1,12 @@
 {
+  "test": {
+    "username": "hehe",
+    "password": "test123"
+  },
+  "hehe": {
+    "username": "hehe",
+    "password": "test123"
+  },
   "standard_user": {
     "username": "standard_user",
     "password": "secret_sauce"
