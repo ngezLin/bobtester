@@ -18,6 +18,7 @@ async function performLogin(datasetName = "standard_user") {
   await bob.goto(targetUrl);
 
   await bob.fill("#user-name", "[username]");
+  await bob.screenshot(`login_as_${datasetName}`);
   await bob.fill("#password", "[password]");
   await bob.click("#login-button");
   await bob.waitForTimeout(500);
