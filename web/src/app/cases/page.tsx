@@ -3,13 +3,15 @@
 import { useEffect, useState } from "react";
 import Sidebar from "@/components/common/Sidebar";
 import { dataService } from "@/api/data";
+import DataGridModal from "@/components/data/DataGridModal";
 
 export default function DataSetsPage() {
   const [files, setFiles] = useState<string[]>([]);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [fileData, setFileData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [inputModal, setInputModal] = useState<{ isOpen: boolean; title: string; label: string; onSubmit: (val: string) => void } | null>(null);
+
   useEffect(() => {
     fetchFiles();
   }, []);
@@ -19,9 +21,6 @@ export default function DataSetsPage() {
       setLoading(true);
       const res = await dataService.getFiles();
       setFiles(res.files || []);
-      if (res.files && res.files.length > 0 && !selectedFile) {
-         loadFile(res.files[0]);
-      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -29,184 +28,115 @@ export default function DataSetsPage() {
     }
   };
 
-  const loadFile = async (filename: string) => {
-    try {
-      setSelectedFile(filename);
-      const res = await dataService.getFile(filename);
-      setFileData(res.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!selectedFile) return;
-    try {
-      await dataService.saveFile(selectedFile, fileData);
-      alert("Saved successfully!");
-    } catch (err) {
-      alert("Failed to save.");
-    }
+  const promptInput = (title: string, label: string, onSubmit: (val: string) => void) => {
+    setInputModal({ isOpen: true, title, label, onSubmit });
   };
 
   const handleCreateFile = async () => {
-    const name = prompt("Enter new file name (e.g. users.json):");
-    if (!name) return;
-    const filename = name.endsWith(".json") ? name : name + ".json";
-    await dataService.saveFile(filename, {});
-    fetchFiles();
-    loadFile(filename);
-  };
-  
-  const datasets = fileData ? Object.keys(fileData) : [];
-  const columns = Array.from(new Set(
-    datasets.flatMap(key => Object.keys(fileData[key] || {}))
-  ));
-
-  const updateCell = (datasetKey: string, column: string, value: string) => {
-    setFileData((prev: any) => ({
-      ...prev,
-      [datasetKey]: {
-        ...(prev[datasetKey] || {}),
-        [column]: value
-      }
-    }));
+    promptInput("Create New JSON File", "File Name (e.g. users.json):", async (name) => {
+      if (!name) return;
+      const filename = name.endsWith(".json") ? name : name + ".json";
+      await dataService.saveFile(filename, {});
+      await fetchFiles();
+      setEditingFile(filename);
+    });
   };
 
-  const addDataset = () => {
-    const name = prompt("Dataset name:");
-    if (name && !fileData[name]) {
-      setFileData((prev: any) => ({ ...prev, [name]: {} }));
+  const handleDeleteFile = async (e: React.MouseEvent, filename: string) => {
+    e.stopPropagation();
+    if (confirm("Delete file '" + filename + "'?")) {
+      await dataService.deleteFile(filename);
+      fetchFiles();
     }
-  };
-
-  const addColumn = () => {
-    const col = prompt("Column name:");
-    if (col && datasets.length > 0) {
-      setFileData((prev: any) => ({
-        ...prev,
-        [datasets[0]]: { ...prev[datasets[0]], [col]: "" }
-      }));
-    } else if (col) {
-      alert("Add a row first!");
-    }
-  };
-
-  const renameDatasetKey = (oldKey: string) => {
-     const newKey = prompt("New dataset name:", oldKey);
-     if (newKey && newKey !== oldKey && !fileData[newKey]) {
-        setFileData((prev: any) => {
-           const newData = { ...prev };
-           newData[newKey] = newData[oldKey];
-           delete newData[oldKey];
-           return newData;
-        });
-     }
-  };
-
-  const deleteDataset = (key: string) => {
-     if (confirm("Delete dataset '" + key + "'?")) {
-        setFileData((prev: any) => {
-           const newData = { ...prev };
-           delete newData[key];
-           return newData;
-        });
-     }
   };
 
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800 font-sans">
       <Sidebar />
       <div className="flex-1 overflow-auto">
-        <header className="bg-white border-b px-8 py-4 flex items-center justify-between shadow-sm sticky top-0 z-10">
+        <header className="bg-white border-b px-8 py-6 flex items-center justify-between shadow-sm sticky top-0 z-10">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Data Sets Editor</h1>
-            <p className="text-sm text-gray-500 mt-1">Manage JSON files inside projects/data</p>
+            <p className="text-sm text-gray-500 mt-1">Manage JSON files located in D:\\projects\\bobtester\\projects\\data</p>
           </div>
-          <div className="space-x-3">
-             <button onClick={handleCreateFile} className="px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg border hover:bg-gray-200 transition-colors">
-              + New File
-            </button>
-            <button onClick={handleSave} className="px-5 py-2 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
-              Save Changes
-            </button>
-          </div>
+          <button onClick={handleCreateFile} className="px-5 py-2.5 bg-red-600 text-white font-medium rounded-lg hover:bg-red-700 transition-colors shadow-sm">
+            + New Data File
+          </button>
         </header>
         
-        <div className="p-8">
-           <div className="flex gap-4 mb-6 border-b pb-4 overflow-x-auto">
-             {files.map(f => (
-               <button 
-                 key={f}
-                 onClick={() => loadFile(f)}
-                 className={"px-4 py-2 rounded-md font-medium text-sm transition-colors whitespace-nowrap " + (selectedFile === f ? "bg-red-100 text-red-700 border-red-200 border" : "bg-white text-gray-600 border hover:bg-gray-50")}
-               >
-                 ?? {f}
-               </button>
-             ))}
-           </div>
-
-           {selectedFile && fileData && (
-             <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-               <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                 <h2 className="font-semibold text-gray-700">Editing: {selectedFile}</h2>
-                 <div className="space-x-2">
-                   <button onClick={addDataset} className="text-sm px-3 py-1.5 bg-white border rounded hover:bg-gray-50 shadow-sm">+ Add Row</button>
-                   <button onClick={addColumn} className="text-sm px-3 py-1.5 bg-white border rounded hover:bg-gray-50 shadow-sm">+ Add Column</button>
-                 </div>
-               </div>
-               
-               <div className="overflow-x-auto">
-                 <table className="w-full text-left text-sm border-collapse">
-                   <thead>
-                     <tr className="bg-gray-100 border-b text-gray-600">
-                       <th className="p-3 font-medium border-r w-10 text-center">#</th>
-                       <th className="p-3 font-medium border-r">Data Key (Click to Rename)</th>
-                       {columns.map(col => (
-                         <th key={col} className="p-3 font-medium border-r">{col}</th>
-                       ))}
-                       <th className="p-3 font-medium w-20 text-center">Actions</th>
-                     </tr>
-                   </thead>
-                   <tbody>
-                     {datasets.length === 0 ? (
-                        <tr><td colSpan={columns.length + 3} className="text-center p-8 text-gray-500">No data available. Add a row!</td></tr>
-                     ) : datasets.map((key, index) => (
-                       <tr key={key} className="border-b hover:bg-gray-50 transition-colors group">
-                         <td className="p-3 text-center text-gray-400 border-r">{index + 1}</td>
-                         <td className="p-0 border-r relative">
-                           <div 
-                             className="w-full h-full p-3 font-medium cursor-pointer hover:bg-gray-100 text-blue-600"
-                             onClick={() => renameDatasetKey(key)}
-                             title="Click to rename"
-                           >
-                             {key}
-                           </div>
-                         </td>
-                         {columns.map(col => (
-                           <td key={col} className="p-0 border-r">
-                             <input 
-                               value={fileData[key][col] || ""}
-                               onChange={(e) => updateCell(key, col, e.target.value)}
-                               className="w-full p-3 bg-transparent outline-none focus:bg-blue-50"
-                               placeholder="-"
-                             />
-                           </td>
-                         ))}
-                         <td className="p-3 text-center">
-                            <button onClick={() => deleteDataset(key)} className="text-red-500 hover:text-red-700 opacity-20 hover:opacity-100 transition-opacity" title="Delete row">
-                              ???
-                            </button>
-                         </td>
-                       </tr>
-                     ))}
-                   </tbody>
-                 </table>
-               </div>
+        <div className="p-8 max-w-5xl">
+           {loading ? (
+             <div className="text-gray-500">Loading files...</div>
+           ) : files.length === 0 ? (
+             <div className="p-10 border-2 border-dashed border-gray-300 rounded-2xl text-center">
+               <p className="text-gray-500 mb-4">No data files found.</p>
+               <button onClick={handleCreateFile} className="text-red-600 font-medium hover:underline">Create one now</button>
+             </div>
+           ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {files.map(f => (
+                  <div 
+                    key={f}
+                    onClick={() => setEditingFile(f)}
+                    className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-red-300 transition-all cursor-pointer group flex flex-col"
+                  >
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="bg-red-50 p-3 rounded-xl text-red-600 group-hover:scale-110 transition-transform">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                      </div>
+                      <button onClick={(e) => handleDeleteFile(e, f)} className="text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity p-2 -m-2">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-800">{f}</h3>
+                    <p className="text-xs text-gray-500 mt-2">Click to edit data grid</p>
+                  </div>
+                ))}
              </div>
            )}
         </div>
       </div>
+
+      {/* Grid Modal */}
+      {editingFile && (
+        <DataGridModal 
+          filename={editingFile} 
+          onClose={() => { setEditingFile(null); fetchFiles(); }} 
+        />
+      )}
+
+      {/* Input Modal for New File */}
+      {inputModal && inputModal.isOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in duration-200">
+             <div className="px-5 py-4 border-b bg-gray-50">
+                <h3 className="font-bold text-gray-800">{inputModal.title}</h3>
+             </div>
+             <form onSubmit={(e) => {
+               e.preventDefault();
+               const val = new FormData(e.currentTarget).get("inputValue") as string;
+               inputModal.onSubmit(val);
+               setInputModal(null);
+             }} className="p-5">
+                <label className="block text-sm text-gray-600 mb-2">{inputModal.label}</label>
+                <input 
+                  name="inputValue" 
+                  autoFocus 
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                  autoComplete="off"
+                />
+                <div className="mt-6 flex justify-end gap-2">
+                   <button type="button" onClick={() => setInputModal(null)} className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg">Cancel</button>
+                   <button type="submit" className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-lg">Confirm</button>
+                </div>
+             </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
