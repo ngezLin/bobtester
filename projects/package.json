@@ -1,0 +1,13 @@
+{
+  "name": "automation-projects",
+  "version": "1.0.0",
+  "description": "BobTester Automation Projects",
+  "main": "test1/main.js",
+  "scripts": {
+    "test1": "node test1/main.js",
+    "test2": "node test2/main.js"
+  },
+  "dependencies": {
+    "bobtester": "file:../framework"
+  }
+}
