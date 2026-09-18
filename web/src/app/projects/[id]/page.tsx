@@ -196,23 +196,12 @@ export default function ProjectDetailPage({ params }: { params: Promise<{ id: st
                         className="bg-white border border-zinc-200/90 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 group hover:border-red-300 hover:shadow-xs transition-all"
                       >
                         <div className="w-full sm:w-auto">
-                          <Link
-                            href={`/cases/${c.id}/config`}
-                            className="text-base font-bold text-zinc-900 group-hover:text-red-600 transition-colors"
-                          >
+                          <span className="text-base font-bold text-zinc-900">
                             {c.name}
-                          </Link>
+                          </span>
                           <div className="text-xs text-zinc-400 mt-1 truncate max-w-md font-mono">
                             {c.target_url}
                           </div>
-                        </div>
-                        <div className="flex items-center gap-3 w-full sm:w-auto">
-                          <Link
-                            href={`/cases/${c.id}/config`}
-                            className="bg-zinc-100 hover:bg-zinc-200 text-zinc-700 px-4 py-2 rounded-xl text-xs font-semibold transition-colors text-center w-full sm:w-auto border border-zinc-200/50"
-                          >
-                            Edit / Configure
-                          </Link>
                         </div>
                       </div>
                     ))}

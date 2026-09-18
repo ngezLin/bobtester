@@ -290,3 +290,163 @@ export function translateJsonToPlaywright(jsonString: string): string {
     return jsonString;
   }
 }
+
+export interface BobTranslation {
+  stepCode: string;
+  moduleCode: string;
+  datasetJson: string;
+  variables: Record<string, any>;
+  hasLogin: boolean;
+}
+
+export function translateChromeRecorderToBob(
+  jsonString: string,
+  functionName: string = "login",
+  datasetName: string = "lalala1"
+): BobTranslation {
+  const fallbackResult: BobTranslation = {
+    stepCode: jsonString,
+    moduleCode: `const { bob } = require('bobtester');\n\nconst utils = {\n  async ${functionName}(datasetName = '${datasetName}') {\n    bob.useDataset(datasetName);\n  }\n};\n\nmodule.exports = utils;\n`,
+    datasetJson: JSON.stringify({ [datasetName]: {} }, null, 2),
+    variables: {},
+    hasLogin: false,
+  };
+
+  try {
+    const data = typeof jsonString === "string" ? JSON.parse(jsonString) : jsonString;
+    const rawSteps = Array.isArray(data.steps)
+      ? data.steps
+      : Array.isArray(data)
+      ? data
+      : [];
+
+    if (rawSteps.length === 0) return fallbackResult;
+
+    // Filter out viewport sizing and raw key presses
+    const filtered = rawSteps.filter(
+      (s: any) => !["setViewport", "keyDown", "keyUp"].includes(s.type)
+    );
+
+    // Prune redundant clicks on inputs right before change
+    const changeTargetKeys = new Set<string>();
+    for (const s of filtered) {
+      if (s.type === "change" && s.selectors) {
+        changeTargetKeys.add(getSelectorKey(s.selectors));
+      }
+    }
+
+    const optimized: any[] = [];
+    for (let i = 0; i < filtered.length; i++) {
+      const curr = filtered[i];
+      if (curr.type === "click" && curr.selectors) {
+        const key = getSelectorKey(curr.selectors);
+        if (changeTargetKeys.has(key)) continue;
+      }
+      optimized.push(curr);
+    }
+
+    const stepLines: string[] = [];
+    const datasetVars: Record<string, any> = {};
+    let varCounter = 1;
+    let initialUrl = "https://www.saucedemo.com";
+    let isLogin = false;
+
+    // Always start with dataset activation
+    stepLines.push(`bob.useDataset(datasetName);`);
+
+    for (let i = 0; i < optimized.length; i++) {
+      const step = optimized[i];
+
+      if (step.type === "navigate") {
+        initialUrl = step.url;
+        datasetVars.targetUrl = step.url;
+        stepLines.push(`const targetUrl = bob.get('targetUrl') || '${step.url}';`);
+        stepLines.push(`await bob.goto(targetUrl);`);
+        continue;
+      }
+
+      const ariaText = getAriaText(step.selectors);
+      const bestSel = getBestSelector(step.selectors, ariaText);
+
+      if (step.type === "click") {
+        const isSignOut =
+          ariaText.toLowerCase().includes("logout") ||
+          ariaText.toLowerCase().includes("sign out");
+
+        if (isSignOut) {
+          stepLines.push(`await bob.click('#react-burger-menu-btn');`);
+          stepLines.push(`await bob.waitForTimeout(400);`);
+          stepLines.push(`await bob.click('#logout_sidebar_link');`);
+          stepLines.push(`await bob.waitForTimeout(500);`);
+          continue;
+        }
+
+        const clickTarget = bestSel || (ariaText ? `[aria-label="${ariaText}"]` : "button");
+        stepLines.push(`await bob.click('${clickTarget}');`);
+        stepLines.push(`await bob.waitForTimeout(500);`);
+
+        if (clickTarget.includes("login") || ariaText.toLowerCase().includes("login")) {
+          isLogin = true;
+          stepLines.push(`await bob.expectVisible('.inventory_list');`);
+        }
+        continue;
+      }
+
+      if (step.type === "change") {
+        const varName = inferVarName(bestSel, ariaText, String(step.value || ""), varCounter++);
+        let sel = "";
+
+        if (bestSel.startsWith("#") || bestSel.includes("data-test")) {
+          sel = bestSel;
+        } else if (ariaText === "Username") {
+          sel = bestSel || `[placeholder="Enter username"]`;
+        } else if (ariaText === "Password") {
+          sel = bestSel || `[placeholder="Enter password"]`;
+        } else if (ariaText && (ariaText.startsWith("e.g.") || ariaText.includes("..."))) {
+          if (bestSel.includes("textarea")) sel = "textarea";
+          else sel = `[placeholder="${ariaText}"]`;
+        } else if (bestSel.includes("textarea")) {
+          sel = "textarea";
+        } else if (bestSel) {
+          sel = bestSel;
+        } else if (ariaText) {
+          sel = `[placeholder="${ariaText}"]`;
+        }
+
+        datasetVars[varName] = step.value || "";
+        stepLines.push(`await bob.fill('${sel}', '[${varName}]');`);
+      }
+    }
+
+    const stepCode = stepLines.join("\n");
+    const moduleCode = `const { bob } = require('bobtester');
+
+const utils = {
+  async ${functionName}(datasetName = '${datasetName}') {
+${stepLines.map((l) => `    ${l}`).join("\n")}
+  }
+};
+
+module.exports = utils;
+`;
+
+    const datasetJson = JSON.stringify(
+      {
+        [datasetName]: datasetVars,
+      },
+      null,
+      2
+    );
+
+    return {
+      stepCode,
+      moduleCode,
+      datasetJson,
+      variables: datasetVars,
+      hasLogin: isLogin,
+    };
+  } catch (_) {
+    return fallbackResult;
+  }
+}
+

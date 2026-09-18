@@ -171,19 +171,13 @@ export default function CasesPage() {
                     </p>
                   </div>
 
-                  <div className="flex gap-2 pt-2 border-t border-zinc-100">
-                    <Link
-                      href={`/cases/${testCase.id}/config`}
-                      className="flex-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 text-xs font-semibold py-2.5 rounded-xl transition-all text-center border border-zinc-200/50"
-                    >
-                      Config
-                    </Link>
+                  <div className="pt-2 border-t border-zinc-100">
                     <button
                       onClick={() => handleOpenRunModal(testCase)}
-                      className="flex-1 bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm shadow-red-500/20 active:scale-95 flex items-center justify-center gap-1.5"
+                      className="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm shadow-red-500/20 active:scale-95 flex items-center justify-center gap-1.5"
                     >
                       <span>▶</span>
-                      <span>Run</span>
+                      <span>Run Test</span>
                     </button>
                   </div>
                 </div>
