@@ -47,17 +47,4 @@ class SubCommon {
 
 const subCommon = new SubCommon();
 
-// Attach shortcuts so both await sub.login('standard_user') and await sub.login.standard_user() work
-const boundLogin = subCommon.login.bind(subCommon);
-boundLogin.standard_user = () => subCommon.login("standard_user");
-boundLogin.locked_out_user = () => subCommon.login("locked_out_user");
-boundLogin.problem_user = () => subCommon.login("problem_user");
-boundLogin.performance_glitch_user = () => subCommon.login("performance_glitch_user");
-boundLogin.error_user = () => subCommon.login("error_user");
-boundLogin.visual_user = () => subCommon.login("visual_user");
-boundLogin.test = () => subCommon.login("test");
-boundLogin.hehe = () => subCommon.login("hehe");
-
-subCommon.login = boundLogin;
-
 module.exports = subCommon;
