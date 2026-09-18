@@ -1,6 +1,7 @@
 # Dependencies
 **/node_modules/
 project/screenshots/
+projects/screenshots/
 
 # Environment Variables
 .env

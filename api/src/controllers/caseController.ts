@@ -85,7 +85,7 @@ export class CaseController {
 
       const { data: rows, error } = await supabase
         .from("test_cases")
-        .select("id, name, target_url, created_at, folder, project_id")
+        .select("id, name, target_url, created_at, folder, project_id, test_assets(id, name, is_negative, data)")
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
