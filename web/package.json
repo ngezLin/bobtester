@@ -10,6 +10,7 @@
     "postinstall": "node -e \"const fs = require('fs'), path = require('path'); const src = path.join('node_modules', '@tailwindcss', 'oxide-win32-x64-msvc', 'tailwindcss-oxide.win32-x64-msvc.node'); const dst = path.join('node_modules', '@tailwindcss', 'oxide', 'tailwindcss-oxide.win32-x64-msvc.node'); if (fs.existsSync(src) && !fs.existsSync(dst)) fs.copyFileSync(src, dst);\""
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "clsx": "^2.1.1",
     "next": "^16.2.6",
     "react": "^19.2.4",

@@ -74,7 +74,7 @@ export class PlaywrightService {
 
   static async executeDynamicTest(
     testRunId: number,
-    steps: any[],
+    steps: any,
     assetData: any = {},
     caseId?: number,
     targetUrl?: string,
@@ -84,6 +84,28 @@ export class PlaywrightService {
     logs: any[];
     vulnerabilities: Vulnerability[];
   }> {
+    // Check if steps is a modular script bundle ({ type: "script", files: { ... } })
+    let parsedSteps = steps;
+    if (typeof parsedSteps === "string") {
+      try {
+        parsedSteps = JSON.parse(parsedSteps);
+      } catch (_) {}
+    }
+    if (
+      parsedSteps &&
+      typeof parsedSteps === "object" &&
+      !Array.isArray(parsedSteps) &&
+      (parsedSteps.type === "script" || parsedSteps.files)
+    ) {
+      return await this.executeModularScript(
+        testRunId,
+        parsedSteps,
+        assetData,
+        caseId,
+        targetUrl,
+      );
+    }
+
     const logs: any[] = [];
     const addLog = (message: string, level: string = "info") => {
       logs.push({ message, level, timestamp: new Date().toISOString() });
@@ -474,6 +496,287 @@ export class PlaywrightService {
       }
 
       addLog("Test execution completed successfully");
+      if (p) {
+        screenshotPath = await this.takeScreenshot(p, testRunId, "success");
+        if (screenshotPath) {
+          logs.push({
+            message: screenshotPath,
+            level: "screenshot",
+            timestamp: new Date().toISOString(),
+            step_index: "result",
+          });
+        }
+      }
+    } catch (error: any) {
+      success = false;
+      addLog(`Execution error: ${error.message || error}`, "error");
+      if (page) {
+        screenshotPath = await this.takeScreenshot(page, testRunId, "error");
+        if (screenshotPath) {
+          logs.push({
+            message: screenshotPath,
+            level: "screenshot",
+            timestamp: new Date().toISOString(),
+            step_index: "result",
+          });
+        }
+      }
+    } finally {
+      if (browser) {
+        await browser.close();
+      }
+    }
+
+    return {
+      success,
+      screenshot: screenshotPath,
+      logs,
+      vulnerabilities: security.getVulnerabilities(),
+    };
+  }
+
+  static async executeModularScript(
+    testRunId: number,
+    scriptBundle: { entry?: string; files: Record<string, string> },
+    assetData: any = {},
+    caseId?: number,
+    targetUrl?: string,
+  ): Promise<{
+    success: boolean;
+    screenshot?: string;
+    logs: any[];
+    vulnerabilities: Vulnerability[];
+  }> {
+    const logs: any[] = [];
+    const addLog = (message: string, level: string = "info") => {
+      logs.push({ message, level, timestamp: new Date().toISOString() });
+      console.log(`[Run ${testRunId}] [${level.toUpperCase()}] ${message}`);
+    };
+
+    let browser: Browser | undefined;
+    let context: any;
+    let page: Page | undefined;
+    const security = new SecurityChecker();
+    let screenshotPath: string | undefined;
+    let success = true;
+
+    try {
+      addLog("Starting modular script execution with Security Probing enabled");
+
+      // Robustness for assetData
+      if (typeof assetData === "string") {
+        try {
+          assetData = JSON.parse(assetData);
+        } catch (_) {
+          assetData = {};
+        }
+      }
+
+      // Resolve target URL fallback
+      let resolvedTargetUrl = targetUrl;
+      if (!resolvedTargetUrl && caseId) {
+        try {
+          const { data } = await supabase
+            .from("test_cases")
+            .select("target_url")
+            .eq("id", caseId)
+            .single();
+          if (data?.target_url) resolvedTargetUrl = data.target_url;
+        } catch (_) {}
+      }
+      if (resolvedTargetUrl && !assetData.targetUrl && !assetData.baseUrl) {
+        assetData.targetUrl = resolvedTargetUrl;
+        assetData.baseUrl = resolvedTargetUrl;
+      }
+
+      addLog("Launching browser for modular IDE execution...");
+      browser = await this.launchBrowser();
+      context = await browser.newContext();
+      const p = await context.newPage();
+      page = p;
+
+      // 1. XSS Sniffer (Dialogs)
+      p.on("dialog", async (dialog: any) => {
+        const message = dialog.message();
+        const dialogType = dialog.type();
+        addLog(`[Dialog Intercepted] Type: "${dialogType}", Message: "${message}"`);
+        const isStandardConfirm = dialogType === "confirm" || dialogType === "beforeunload";
+        if (!isStandardConfirm) {
+          addLog(
+            `Security Alert: Unexpected alert dialog detected! Content: "${message}"`,
+            "warn",
+          );
+          security.addVulnerability({
+            type: "Cross-Site Scripting (XSS)",
+            severity: "HIGH",
+            evidence: `Triggered unexpected ${dialogType} dialog with content: "${message}"`,
+          });
+          await dialog.dismiss();
+        } else {
+          await dialog.accept();
+        }
+      });
+
+      // 2. Console Listener (DOM XSS / Leaks)
+      p.on("console", (msg: any) => {
+        const text = msg.text();
+        if (text.includes("XSS") || text.includes("BOB_") || text.includes("<script>")) {
+          security.addVulnerability({
+            type: "Console Output Leak / DOM XSS",
+            severity: "MEDIUM",
+            evidence: `Suspicious execution pattern in console log: "${text.substring(0, 150)}"`,
+          });
+        }
+      });
+
+      // 3. Response Scanner (SQLi & Headers)
+      p.on("response", async (response: any) => {
+        try {
+          const url = response.url();
+          const status = response.status();
+          const headers = response.headers();
+          const contentType = headers["content-type"] || "";
+          let body = "";
+          if (contentType.includes("text") || contentType.includes("json")) {
+            body = await response.text();
+          }
+          security.scanResponse(url, status, headers, body, 0);
+        } catch (_) {}
+      });
+
+      // Wrap page with live action logger & asset variable interpolation
+      const wrappedPage = new Proxy(p, {
+        get(target: any, prop: string | symbol, receiver: any) {
+          const orig = target[prop];
+          if (typeof orig === "function") {
+            if (prop === "goto") {
+              return async (url: string, options?: any) => {
+                let finalUrl = url;
+                if (finalUrl && typeof finalUrl === "string" && finalUrl.includes("[") && finalUrl.includes("]")) {
+                  const varName = finalUrl.match(/\[(.*?)\]/)?.[1];
+                  if (varName && assetData[varName] !== undefined) {
+                    finalUrl = finalUrl.replace(`[${varName}]`, String(assetData[varName]));
+                  }
+                }
+                addLog(`Navigating to ${finalUrl}`);
+                return await orig.call(target, finalUrl, { waitUntil: "domcontentloaded", timeout: 30000, ...options });
+              };
+            }
+            if (prop === "click") {
+              return async (selector: string, options?: any) => {
+                addLog(`Clicking ${selector}`);
+                return await orig.call(target, selector, { timeout: 15000, ...options });
+              };
+            }
+            if (prop === "fill") {
+              return async (selector: string, value: string, options?: any) => {
+                let finalValue = value;
+                if (finalValue && typeof finalValue === "string" && finalValue.includes("[") && finalValue.includes("]")) {
+                  const varName = finalValue.match(/\[(.*?)\]/)?.[1];
+                  if (varName && assetData[varName] !== undefined) {
+                    finalValue = finalValue.replace(`[${varName}]`, String(assetData[varName]));
+                  }
+                }
+                addLog(`Filling ${selector} with "${finalValue}"`);
+                return await orig.call(target, selector, finalValue, { timeout: 15000, ...options });
+              };
+            }
+            if (prop === "screenshot") {
+              return async (options?: any) => {
+                addLog(`Capturing step screenshot...`);
+                const scr = await PlaywrightService.takeScreenshot(p, testRunId, "manual");
+                if (scr) {
+                  logs.push({
+                    message: scr,
+                    level: "screenshot",
+                    timestamp: new Date().toISOString(),
+                    step_index: "manual",
+                  });
+                  addLog(`📸 Captured screenshot successfully`);
+                }
+                return scr;
+              };
+            }
+            return orig.bind(target);
+          }
+          return Reflect.get(target, prop, receiver);
+        }
+      });
+
+      // Prepare files and entrypoint
+      const files = scriptBundle.files || {};
+      const entryFile =
+        scriptBundle.entry ||
+        (files["main.js"] ? "main.js" : Object.keys(files)[0] || "main.js");
+      const mainContent = files[entryFile] || "";
+
+      // Combine helper modules into scope
+      let moduleDeclarations = "";
+      for (const [filePath, code] of Object.entries(files)) {
+        if (filePath !== entryFile) {
+          const cleaned = code
+            .replace(/export\s+default\s+/g, "")
+            .replace(/export\s+/g, "");
+          moduleDeclarations += `\n/* Module: ${filePath} */\n${cleaned}\n`;
+        }
+      }
+
+      const cleanedMain = mainContent.replace(/import\s+.*?['"].*?['"];?/g, "");
+
+      addLog(`Executing modular script entrypoint: ${entryFile}`);
+
+      // Construct asynchronous execution sandbox
+      const AsyncFunction = Object.getPrototypeOf(async function () {}).constructor as any;
+      const runnerFn = new AsyncFunction(
+        "page",
+        "asset",
+        "addLog",
+        "screenshot",
+        "sleep",
+        `
+          ${moduleDeclarations}
+
+          // Auto-inject page and asset context to static classes (COMMON, transactionMenu, etc.)
+          const declaredObjects = [
+            typeof COMMON !== "undefined" ? COMMON : null,
+            typeof transactionMenu !== "undefined" ? transactionMenu : null,
+            typeof TransactionMenu !== "undefined" ? TransactionMenu : null,
+          ].filter(Boolean);
+
+          for (const obj of declaredObjects) {
+            try {
+              if (obj) {
+                obj.page = page;
+                obj.asset = asset;
+              }
+            } catch (_) {}
+          }
+
+          ${cleanedMain}
+        `,
+      );
+
+      await runnerFn(
+        wrappedPage,
+        assetData,
+        addLog,
+        async (name?: string) => {
+          const scr = await PlaywrightService.takeScreenshot(p, testRunId, name || "step");
+          if (scr) {
+            logs.push({
+              message: scr,
+              level: "screenshot",
+              timestamp: new Date().toISOString(),
+              step_index: "manual",
+            });
+            addLog(`📸 Captured screenshot: ${name || "step"}`);
+          }
+          return scr;
+        },
+        (ms: number) => p.waitForTimeout(ms),
+      );
+
+      addLog("Modular script execution completed successfully");
       if (p) {
         screenshotPath = await this.takeScreenshot(p, testRunId, "success");
         if (screenshotPath) {
