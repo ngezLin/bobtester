@@ -2,19 +2,15 @@ import { api } from './api';
 
 export const dataService = {
   getFiles: async () => {
-    const res = await api.get('/data');
-    return res.data;
+    return await api.get('/data');
   },
   getFile: async (filename: string) => {
-    const res = await api.get(/data/ + filename);
-    return res.data;
+    return await api.get(`/data/` + filename);
   },
   saveFile: async (filename: string, data: any) => {
-    const res = await api.post(/data/ + filename, { data });
-    return res.data;
+    return await api.post(`/data/` + filename, { data });
   },
   deleteFile: async (filename: string) => {
-    const res = await api.delete(/data/ + filename);
-    return res.data;
+    return await api.delete(`/data/` + filename);
   }
 };
