@@ -1,70 +1,55 @@
 const { bob } = require("bobtester");
+const loginData = require("../data/login.json");
 
 /**
- * @typedef {'standard_user' | 'locked_out_user' | 'problem_user' | 'performance_glitch_user' | 'error_user' | 'visual_user'} SauceUser
+ * Perform login using credentials defined in data/login.json
+ * @param {string} accountKey - Key in login.json (e.g. 'standard_user', 'test')
  */
+async function performLogin(accountKey = "standard_user") {
+  // Find account by key, or find by username
+  let account = loginData[accountKey];
+  if (!account) {
+    const found = Object.values(loginData).find((u) => u.username === accountKey);
+    account = found || { username: accountKey, password: "secret_sauce" };
+  }
 
-/**
- * Perform login using a specified dataset name / user profile.
- * @param {string} datasetName - Name of the dataset in datasets.json
- */
-async function performLogin(datasetName = "standard_user") {
-  console.log(
-    `\n🔑 [common.login] Starting login flow with user: "${datasetName}"...`,
-  );
-
-  // Activate the dataset in bob
-  bob.useDataset(datasetName);
+  console.log(`\n🔑 [common.login] Starting login flow for: "${account.username}"...`);
 
   await bob.goto("https://www.saucedemo.com");
-
-  await bob.fill("#user-name", "[username]");
-  await bob.fill("#password", "[password]");
-  await bob.screenshot(`login_as_${datasetName}`);
+  await bob.fill("#user-name", account.username);
+  await bob.screenshot(`login_as_${accountKey}`);
+  await bob.fill("#password", account.password);
   await bob.click("#login-button");
   await bob.waitForTimeout(500);
 
-  if (datasetName === "locked_out_user") {
+  if (accountKey === "locked_out_user" || account.username === "locked_out_user") {
     await bob.expectVisible("[data-test='error']");
-    console.log(
-      `⚠️ [common.login] Verified locked_out error banner for: ${datasetName}`,
-    );
+    console.log(`⚠️ [common.login] Verified locked_out error banner for: ${account.username}`);
   } else {
     await bob.expectVisible(".inventory_list");
-    console.log(
-      `🎉 [common.login] Logged in successfully as: ${bob.get("username")}`,
-    );
+    console.log(`🎉 [common.login] Logged in successfully as: ${account.username}`);
   }
 }
 
-// Function callable as both common.login('standard_user') AND common.login.standard_user()
-const baseLogin = Object.assign(
-  /**
-   * Log into SauceDemo
-   * @param {SauceUser} [userType='standard_user']
-   */
-  async (userType = "standard_user") => performLogin(userType),
-  {
-    standard_user: async () => performLogin("standard_user"),
-    locked_out_user: async () => performLogin("locked_out_user"),
-    problem_user: async () => performLogin("problem_user"),
-    performance_glitch_user: async () =>
-      performLogin("performance_glitch_user"),
-    error_user: async () => performLogin("error_user"),
-    visual_user: async () => performLogin("visual_user"),
-  },
-);
-
-// Proxy allows dynamic dataset names as functions too: common.login.any_dataset_name()
-const login = new Proxy(baseLogin, {
-  get(target, prop) {
-    if (prop in target) return target[prop];
-    if (typeof prop === "string" && prop !== "then") {
-      return async () => performLogin(prop);
-    }
-    return target[prop];
-  },
+// Build methods from login.json
+const loginMethods = {};
+Object.keys(loginData).forEach((key) => {
+  loginMethods[key] = async () => performLogin(key);
 });
+
+// Callable as common.login('standard_user') or common.login.standard_user()
+const login = new Proxy(
+  Object.assign(async (key = "standard_user") => performLogin(key), loginMethods),
+  {
+    get(target, prop) {
+      if (prop in target) return target[prop];
+      if (typeof prop === "string" && prop !== "then") {
+        return async () => performLogin(prop);
+      }
+      return target[prop];
+    },
+  }
+);
 
 const common = {
   login,
@@ -75,9 +60,7 @@ const common = {
     await bob.waitForTimeout(400);
     await bob.click("#logout_sidebar_link");
     await bob.waitForTimeout(500);
-
     await bob.expectVisible("#login-button");
-    await bob.screenshot(`Logged out`);
     console.log(`🔒 [common.logout] Logged out successfully.`);
   },
 };
