@@ -8,6 +8,7 @@ import { caseService } from "@/api/cases";
 import { assetService } from "@/api/assets";
 import { runService } from "@/api/runs";
 import ConfirmModal from "@/components/ui/ConfirmModal";
+import DatasetGridModal from "@/components/cases/DatasetGridModal";
 
 export default function CasesPage() {
   const [cases, setCases] = useState<any[]>([]);
@@ -19,69 +20,14 @@ export default function CasesPage() {
   const [runningAssetName, setRunningAssetName] = useState("");
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   
-  // Datasets viewer & manager state
+  // Datasets modal state
   const [viewingAssetsCase, setViewingAssetsCase] = useState<any>(null);
-  const [showAddDataset, setShowAddDataset] = useState(false);
-  const [newDatasetName, setNewDatasetName] = useState("");
-  const [newDatasetJson, setNewDatasetJson] = useState('{\n  "username": "standard_user",\n  "password": "secret_sauce"\n}');
-  const [addingDataset, setAddingDataset] = useState(false);
 
   const router = useRouter();
 
   useEffect(() => {
     fetchCases();
   }, []);
-
-  const handleAddDataset = async () => {
-    if (!viewingAssetsCase || !newDatasetName.trim()) return;
-    setAddingDataset(true);
-    try {
-      let parsed = {};
-      try {
-        parsed = JSON.parse(newDatasetJson);
-      } catch (_) {
-        alert("Invalid JSON format for dataset values");
-        setAddingDataset(false);
-        return;
-      }
-
-      const res = await assetService.addAsset(viewingAssetsCase.id, {
-        name: newDatasetName.trim(),
-        data: parsed,
-        is_negative: false,
-      });
-
-      if (res.success) {
-        setNewDatasetName("");
-        setShowAddDataset(false);
-        await fetchCases();
-        const updated = await assetService.getAssetsByCase(viewingAssetsCase.id);
-        if (updated.success) {
-          setViewingAssetsCase((prev: any) => ({ ...prev, test_assets: updated.assets }));
-        }
-      }
-    } catch (err: any) {
-      alert(err.message || "Failed to add dataset");
-    } finally {
-      setAddingDataset(false);
-    }
-  };
-
-  const handleDeleteDataset = async (assetId: number) => {
-    if (!confirm("Are you sure you want to delete this dataset?")) return;
-    try {
-      await assetService.deleteAsset(assetId);
-      await fetchCases();
-      if (viewingAssetsCase) {
-        const updated = await assetService.getAssetsByCase(viewingAssetsCase.id);
-        if (updated.success) {
-          setViewingAssetsCase((prev: any) => ({ ...prev, test_assets: updated.assets }));
-        }
-      }
-    } catch (err: any) {
-      alert(err.message || "Failed to delete dataset");
-    }
-  };
 
   const fetchCases = async () => {
     try {
@@ -413,131 +359,16 @@ export default function CasesPage() {
           </div>
         )}
 
-        {/* Datasets Viewer & Manager Modal */}
-        {viewingAssetsCase && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-            <div className="bg-white border border-zinc-200 w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 max-h-[90vh] flex flex-col">
-              <div className="p-6 border-b border-zinc-100 flex items-center justify-between">
-                <div>
-                  <h3 className="text-lg font-bold text-zinc-900">
-                    Data Sets: {viewingAssetsCase.name}
-                  </h3>
-                  <p className="text-xs text-zinc-500 font-mono mt-0.5">
-                    {viewingAssetsCase.target_url}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setViewingAssetsCase(null);
-                    setShowAddDataset(false);
-                  }}
-                  className="text-zinc-400 hover:text-zinc-700 p-1.5 rounded-lg hover:bg-zinc-100"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="p-6 overflow-auto flex-1 space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-zinc-700 uppercase tracking-wider">
-                    Configured Data Sets
-                  </span>
-                  <button
-                    onClick={() => setShowAddDataset(!showAddDataset)}
-                    className="text-xs font-bold px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white rounded-xl shadow-xs flex items-center gap-1.5"
-                  >
-                    <span>{showAddDataset ? "Cancel" : "+ Add Data Set"}</span>
-                  </button>
-                </div>
-
-                {showAddDataset && (
-                  <div className="bg-zinc-50 border border-zinc-200 rounded-2xl p-4 space-y-3">
-                    <h4 className="text-xs font-bold text-zinc-800">New Data Set</h4>
-                    <div>
-                      <label className="block text-[11px] font-bold text-zinc-600 uppercase mb-1">
-                        Data Set Name
-                      </label>
-                      <input
-                        type="text"
-                        value={newDatasetName}
-                        onChange={(e) => setNewDatasetName(e.target.value)}
-                        placeholder="e.g. lalala1, admin_set"
-                        className="w-full bg-white border border-zinc-200 rounded-xl px-3 py-2 text-xs font-mono outline-none focus:border-red-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-[11px] font-bold text-zinc-600 uppercase mb-1">
-                        JSON Values
-                      </label>
-                      <textarea
-                        value={newDatasetJson}
-                        onChange={(e) => setNewDatasetJson(e.target.value)}
-                        rows={5}
-                        className="w-full bg-zinc-950 text-emerald-400 font-mono text-xs p-3 rounded-xl outline-none border border-zinc-800"
-                      />
-                    </div>
-                    <button
-                      onClick={handleAddDataset}
-                      disabled={addingDataset || !newDatasetName.trim()}
-                      className="px-4 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-40 text-white rounded-xl text-xs font-bold shadow-xs"
-                    >
-                      {addingDataset ? "Saving..." : "Save Data Set"}
-                    </button>
-                  </div>
-                )}
-
-                {/* List of existing datasets */}
-                {(!viewingAssetsCase.test_assets || viewingAssetsCase.test_assets.length === 0) ? (
-                  <div className="text-center py-8 text-zinc-400 text-xs italic">
-                    No data sets configured for this test case yet.
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {viewingAssetsCase.test_assets.map((asset: any) => (
-                      <div
-                        key={asset.id}
-                        className="bg-white border border-zinc-200/90 rounded-2xl p-4 shadow-xs space-y-2"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-sm text-zinc-900 font-mono">
-                              🏷️ {asset.name}
-                            </span>
-                            <span className="text-[10px] px-2 py-0.5 rounded-full font-medium border bg-emerald-50 text-emerald-700 border-emerald-200">
-                              Active
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleDeleteDataset(asset.id)}
-                            className="text-xs text-zinc-400 hover:text-red-600 p-1"
-                            title="Delete dataset"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                        <pre className="bg-zinc-950 text-zinc-300 font-mono text-xs p-3 rounded-xl overflow-x-auto border border-zinc-800">
-                          {JSON.stringify(asset.data, null, 2)}
-                        </pre>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div className="p-4 border-t border-zinc-100 bg-zinc-50 flex justify-end">
-                <button
-                  onClick={() => {
-                    setViewingAssetsCase(null);
-                    setShowAddDataset(false);
-                  }}
-                  className="px-5 py-2 text-xs font-semibold text-zinc-700 hover:text-zinc-900 bg-white border border-zinc-200 rounded-xl"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Datasets Spreadsheet Grid Modal */}
+        <DatasetGridModal
+          isOpen={viewingAssetsCase !== null}
+          onClose={() => {
+            setViewingAssetsCase(null);
+            fetchCases();
+          }}
+          testCase={viewingAssetsCase}
+          onRefresh={fetchCases}
+        />
 
         <ConfirmModal
           isOpen={confirmDeleteId !== null}
