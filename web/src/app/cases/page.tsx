@@ -105,7 +105,7 @@ export default function DataSetsPage() {
   };
 
   const deleteDataset = (key: string) => {
-     if (confirm(Delete dataset ' + key + '?)) {
+     if (confirm("Delete dataset '" + key + "'?")) {
         setFileData((prev: any) => {
            const newData = { ...prev };
            delete newData[key];
