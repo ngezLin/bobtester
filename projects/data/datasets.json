@@ -1,7 +1,32 @@
 {
-  "lalala1": {
+  "standard_user": {
     "targetUrl": "https://www.saucedemo.com",
     "username": "standard_user",
+    "password": "secret_sauce"
+  },
+  "locked_out_user": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "locked_out_user",
+    "password": "secret_sauce"
+  },
+  "problem_user": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "problem_user",
+    "password": "secret_sauce"
+  },
+  "performance_glitch_user": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "performance_glitch_user",
+    "password": "secret_sauce"
+  },
+  "error_user": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "error_user",
+    "password": "secret_sauce"
+  },
+  "visual_user": {
+    "targetUrl": "https://www.saucedemo.com",
+    "username": "visual_user",
     "password": "secret_sauce"
   }
 }
