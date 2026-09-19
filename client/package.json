@@ -1,0 +1,7 @@
+{
+  "name": "testbob",
+  "version": "1.0.0",
+  "dependencies": {
+    "bobtester": "file:../framework"
+  }
+}

@@ -1,4 +1,19 @@
 {
+  "name": "bobtester-workspace",
+  "private": true,
+  "workspaces": [
+    "framework",
+    "gui/app",
+    "gui/server"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "framework:build": "npm run build --workspace=bobtester",
+    "gui:dev": "npm run dev --workspace=@bobtester/gui-app",
+    "gui:server": "npm run dev --workspace=@bobtester/gui-server",
+    "gui:build": "npm run build --workspace=@bobtester/gui-app",
+    "gui:server:build": "npm run build --workspace=@bobtester/gui-server"
+  },
   "dependencies": {
     "@types/ws": "^8.18.1",
     "pg": "^8.20.0",

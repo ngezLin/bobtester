@@ -1,0 +1,12 @@
+{
+  "login2": {
+    "username": "standard_user",
+    "password": "secret_sauce",
+    "active": "Yes"
+  },
+  "login_inactive": {
+    "username": "locked_out_user",
+    "password": "secret_sauce",
+    "active": "No"
+  }
+}

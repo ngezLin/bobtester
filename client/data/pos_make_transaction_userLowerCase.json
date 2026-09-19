@@ -1,0 +1,14 @@
+{
+  "1": {
+    "firstName": "john",
+    "lastName": "doe",
+    "postalCode": "12345",
+    "status": "Active"
+  },
+  "2": {
+    "firstName": "john_inactive",
+    "lastName": "doe",
+    "postalCode": "12345",
+    "status": "Inactive"
+  }
+}

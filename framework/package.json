@@ -1,6 +1,6 @@
 {
   "name": "bobtester",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Modular Automation Testing Framework & Library SDK powered by Playwright and Browserless",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

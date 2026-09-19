@@ -8,6 +8,7 @@ export interface BobConfig {
     slowMo?: number;
     datasets?: string;
     screenshotsDir?: string;
+    reportsDir?: string;
     baseUrl?: string;
 }
 export declare function loadConfig(projectDir?: string): BobConfig;

@@ -27,7 +27,7 @@ function loadConfig(projectDir = process.cwd()) {
             config = JSON.parse(raw);
         }
         catch (e) {
-            console.warn(`⚠️ [bobtester] Warning: Failed to parse bobtester.config.json: ${e.message}`);
+            console.warn(`[bobtester] Warning: Failed to parse bobtester.config.json: ${e.message}`);
         }
     }
     else if (fs_1.default.existsSync(jsPath)) {
@@ -35,12 +35,14 @@ function loadConfig(projectDir = process.cwd()) {
             config = require(jsPath);
         }
         catch (e) {
-            console.warn(`⚠️ [bobtester] Warning: Failed to load bobtester.config.js: ${e.message}`);
+            console.warn(`[bobtester] Warning: Failed to load bobtester.config.js: ${e.message}`);
         }
     }
     // Environment variable overrides
     const apiKey = process.env.BROWSERLESS_API_KEY || config.browserless?.apiKey;
-    const endpoint = process.env.BROWSERLESS_ENDPOINT || config.browserless?.endpoint || "wss://chrome.browserless.io";
+    const endpoint = process.env.BROWSERLESS_ENDPOINT ||
+        config.browserless?.endpoint ||
+        "wss://chrome.browserless.io";
     loadedConfig = {
         browserless: {
             apiKey,
@@ -51,6 +53,7 @@ function loadConfig(projectDir = process.cwd()) {
         slowMo: config.slowMo !== undefined ? config.slowMo : 100,
         datasets: config.datasets || "./data/datasets.json",
         screenshotsDir: config.screenshotsDir || "./screenshots",
+        reportsDir: config.reportsDir || "./reports",
         baseUrl: config.baseUrl || "",
     };
     return loadedConfig;

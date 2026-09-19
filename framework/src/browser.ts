@@ -18,7 +18,8 @@ export class BrowserManager {
 
     const config = getConfig();
     const apiKey = config.browserless?.apiKey;
-    const endpoint = config.browserless?.endpoint || "wss://chrome.browserless.io";
+    const endpoint =
+      config.browserless?.endpoint || "wss://chrome.browserless.io";
     const slowMo = config.slowMo || 0;
     const headless = config.headless !== undefined ? config.headless : true;
 
@@ -29,22 +30,28 @@ export class BrowserManager {
     if (apiKey) {
       const cleanEndpoint = endpoint.replace(/\/+$/, "");
       const wsUrl = `${cleanEndpoint}?token=${apiKey}`;
-      console.log(`🌐 [Browserless] Connecting to cloud browser...`);
+      console.log(`[Browserless] Connecting to cloud browser...`);
 
       try {
         browser = await chromium.connectOverCDP(wsUrl, {
           timeout: config.browserless?.timeout || 30000,
         });
         isCloud = true;
-        console.log(`✅ [Browserless] Connected to remote browser session successfully.`);
+        console.log(
+          `[Browserless] Connected to remote browser session successfully.`,
+        );
       } catch (err: any) {
-        console.warn(`⚠️ [Browserless] Cloud connection failed: ${err.message}. Falling back to local Chromium.`);
+        console.warn(
+          `[Browserless] Cloud connection failed: ${err.message}. Falling back to local Chromium.`,
+        );
       }
     }
 
     // 2. Fallback to local Chromium
     if (!browser) {
-      console.log(`💻 [Playwright] Launching local Chromium browser (headless: ${headless})...`);
+      console.log(
+        `[Playwright] Launching local Chromium browser (headless: ${headless})...`,
+      );
       browser = await chromium.launch({
         headless,
         slowMo,

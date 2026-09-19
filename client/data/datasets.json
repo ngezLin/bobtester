@@ -1,0 +1,12 @@
+{
+  "lalala1": {
+    "username": "standard_user",
+    "password": "secret_sauce",
+    "targetUrl": "https://www.saucedemo.com"
+  },
+  "lalala_locked": {
+    "username": "locked_out_user",
+    "password": "secret_sauce",
+    "is_negative": true
+  }
+}

@@ -11,6 +11,7 @@ const dataset_1 = require("./dataset");
 const config_1 = require("./config");
 class BobDriver {
     datasetManager;
+    reportSteps = [];
     constructor() {
         this.datasetManager = dataset_1.DatasetManager.getInstance();
     }
@@ -45,7 +46,7 @@ class BobDriver {
     async goto(url, options) {
         const resolvedUrl = this.datasetManager.interpolate(url);
         const page = await this.getPage();
-        console.log(`🌐 [Navigate] -> ${resolvedUrl}`);
+        console.log(`[Navigate] -> ${resolvedUrl}`);
         return await page.goto(resolvedUrl, options);
     }
     /**
@@ -54,7 +55,7 @@ class BobDriver {
     async click(selector, options) {
         const resolvedSelector = this.datasetManager.interpolate(selector);
         const page = await this.getPage();
-        console.log(`👆 [Click] ${resolvedSelector}`);
+        console.log(`[Click] ${resolvedSelector}`);
         await page.click(resolvedSelector, options);
     }
     /**
@@ -82,7 +83,7 @@ class BobDriver {
                     try {
                         const el = await page.$(sel);
                         if (el) {
-                            console.log(`✍️ [Fill] ${sel} -> "${val ? '***' : ''}" (from [${key}])`);
+                            console.log(`[Fill] ${sel} -> "${val ? "***" : ""}" (from [${key}])`);
                             await page.fill(sel, String(val ?? ""), valueOrOptions);
                             return;
                         }
@@ -96,8 +97,9 @@ class BobDriver {
         const resolvedValue = typeof valueOrOptions === "string"
             ? this.datasetManager.interpolate(valueOrOptions)
             : String(valueOrOptions ?? "");
-        const isSensitive = /pass|secret|token|key/i.test(selectorOrVariable) || /pass|secret|token|key/i.test(resolvedValue);
-        console.log(`✍️ [Fill] ${selector} -> "${isSensitive ? '********' : resolvedValue}"`);
+        const isSensitive = /pass|secret|token|key/i.test(selectorOrVariable) ||
+            /pass|secret|token|key/i.test(resolvedValue);
+        console.log(`[Fill] ${selector} -> "${isSensitive ? "********" : resolvedValue}"`);
         await page.fill(selector, resolvedValue, options);
     }
     /**
@@ -107,7 +109,7 @@ class BobDriver {
         const resolvedSelector = this.datasetManager.interpolate(selector);
         const resolvedText = this.datasetManager.interpolate(text);
         const page = await this.getPage();
-        console.log(`⌨️ [Type] ${resolvedSelector}`);
+        console.log(`[Type] ${resolvedSelector}`);
         await page.type(resolvedSelector, resolvedText, options);
     }
     /**
@@ -116,7 +118,7 @@ class BobDriver {
     async press(selector, key, options) {
         const resolvedSelector = this.datasetManager.interpolate(selector);
         const page = await this.getPage();
-        console.log(`🔘 [Press] ${key} on ${resolvedSelector}`);
+        console.log(`[Press] ${key} on ${resolvedSelector}`);
         await page.press(resolvedSelector, key, options);
     }
     /**
@@ -134,14 +136,19 @@ class BobDriver {
         const fullPath = path_1.default.join(storageDir, filename);
         const page = await this.getPage();
         await page.screenshot({ path: fullPath, fullPage: false });
-        console.log(`📸 [Screenshot] Captured: ${path_1.default.relative(process.cwd(), fullPath)}`);
+        const relativePath = path_1.default.relative(process.cwd(), fullPath);
+        console.log(`[Screenshot] Captured: ${relativePath}`);
+        this.reportSteps.push({
+            title: name || "Screenshot",
+            imagePath: relativePath,
+        });
         return fullPath;
     }
     /**
      * Pause execution for specified milliseconds
      */
     async sleep(ms = 1000) {
-        console.log(`⏳ [Wait] ${ms}ms`);
+        console.log(`[Wait] ${ms}ms`);
         const page = await this.getPage();
         await page.waitForTimeout(ms);
     }
@@ -163,12 +170,15 @@ class BobDriver {
         const resolvedSelector = this.datasetManager.interpolate(selector);
         const page = await this.getPage();
         try {
-            await page.waitForSelector(resolvedSelector, { state: "visible", timeout });
-            console.log(`✅ [Assert] Element is visible: ${resolvedSelector}`);
+            await page.waitForSelector(resolvedSelector, {
+                state: "visible",
+                timeout,
+            });
+            console.log(`[Assert] Element is visible: ${resolvedSelector}`);
             return true;
         }
         catch (e) {
-            console.error(`❌ [Assert Failed] Element NOT visible: ${resolvedSelector}`);
+            console.error(`[Assert Failed] Element NOT visible: ${resolvedSelector}`);
             throw new Error(`Expected element "${resolvedSelector}" to be visible, but it timed out after ${timeout}ms`);
         }
     }
@@ -178,28 +188,67 @@ class BobDriver {
     get page() {
         return this.getPage();
     }
+    generateReport(success, elapsed, errorMsg) {
+        if (this.reportSteps.length === 0)
+            return;
+        const config = (0, config_1.getConfig)();
+        const reportDir = path_1.default.resolve(process.cwd(), config.reportsDir || "./reports");
+        if (!fs_1.default.existsSync(reportDir)) {
+            fs_1.default.mkdirSync(reportDir, { recursive: true });
+        }
+        const scriptPath = process.argv[1] || "";
+        let testName = "test_report";
+        if (scriptPath) {
+            const parts = scriptPath.split(path_1.default.sep);
+            if (parts.length >= 2) {
+                testName = parts[parts.length - 2];
+            }
+            else {
+                testName = path_1.default.basename(scriptPath, ".js");
+            }
+        }
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const filename = `${testName}_${timestamp}.md`;
+        const fullPath = path_1.default.join(reportDir, filename);
+        let md = `# Report: ${testName}\n\n`;
+        md += `**Status:** ${success ? "Passed" : "Failed"}\n`;
+        md += `**Time:** ${elapsed}s\n\n`;
+        if (errorMsg) {
+            md += `**Error:**\n\`\`\`\n${errorMsg}\n\`\`\`\n\n`;
+        }
+        this.reportSteps.forEach((step, index) => {
+            const relativeImage = "../" + step.imagePath.replace(/\\/g, "/");
+            md += `### ${index + 1}. ${step.title}\n`;
+            md += `![${step.title}](${relativeImage})\n\n`;
+        });
+        fs_1.default.writeFileSync(fullPath, md);
+        console.log(`[Report] Generated at: ${path_1.default.relative(process.cwd(), fullPath)}`);
+    }
     /**
      * Runner entrypoint for standalone test script execution
      */
     async run(testFn) {
         const startTime = Date.now();
         console.log(`\n======================================================`);
-        console.log(`🚀 [BobTester] Starting Test Execution...`);
+        console.log(`[BobTester] Starting Test Execution...`);
         console.log(`======================================================\n`);
+        this.reportSteps = []; // Reset steps for each run
         try {
             // Connect / launch browser
             await browser_1.BrowserManager.getSession();
             // Execute caller's test flow
             await testFn();
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+            this.generateReport(true, elapsed);
             console.log(`\n======================================================`);
-            console.log(`🎉 [BobTester] Test Finished Successfully in ${elapsed}s`);
+            console.log(`[BobTester] Test Finished Successfully in ${elapsed}s`);
             console.log(`======================================================\n`);
         }
         catch (err) {
             const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
+            this.generateReport(false, elapsed, err.message || String(err));
             console.error(`\n======================================================`);
-            console.error(`💥 [BobTester] Test Execution Failed after ${elapsed}s:`);
+            console.error(`[BobTester] Test Execution Failed after ${elapsed}s:`);
             console.error(err.message || err);
             console.error(`======================================================\n`);
             process.exitCode = 1;
@@ -213,7 +262,7 @@ exports.BobDriver = BobDriver;
 // Export singleton instance as 'bob'
 exports.bob = new BobDriver();
 const test = (title, fn) => {
-    console.log(`\n📝 Running Test: "${title}"`);
+    console.log(`\n[BobTester] Running Test: "${title}"`);
     return exports.bob.run(fn);
 };
 exports.test = test;

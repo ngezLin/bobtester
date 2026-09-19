@@ -53,7 +53,7 @@ export class BobDriver {
   public async goto(url: string, options?: any): Promise<any> {
     const resolvedUrl = this.datasetManager.interpolate(url);
     const page = await this.getPage();
-    console.log(`🌐 [Navigate] -> ${resolvedUrl}`);
+    console.log(`[Navigate] -> ${resolvedUrl}`);
     return await page.goto(resolvedUrl, options);
   }
 
@@ -63,7 +63,7 @@ export class BobDriver {
   public async click(selector: string, options?: any): Promise<void> {
     const resolvedSelector = this.datasetManager.interpolate(selector);
     const page = await this.getPage();
-    console.log(`👆 [Click] ${resolvedSelector}`);
+    console.log(`[Click] ${resolvedSelector}`);
     await page.click(resolvedSelector, options);
   }
 
@@ -72,7 +72,11 @@ export class BobDriver {
    * 1. fill(selector, '[username]')
    * 2. fill('[username]') -> smart selector based on variable key
    */
-  public async fill(selectorOrVariable: string, valueOrOptions?: any, options?: any): Promise<void> {
+  public async fill(
+    selectorOrVariable: string,
+    valueOrOptions?: any,
+    options?: any,
+  ): Promise<void> {
     const page = await this.getPage();
 
     // Single argument shorthand: fill('[username]')
@@ -94,7 +98,9 @@ export class BobDriver {
           try {
             const el = await page.$(sel);
             if (el) {
-              console.log(`✍️ [Fill] ${sel} -> "${val ? '***' : ''}" (from [${key}])`);
+              console.log(
+                `[Fill] ${sel} -> "${val ? "***" : ""}" (from [${key}])`,
+              );
               await page.fill(sel, String(val ?? ""), valueOrOptions);
               return;
             }
@@ -105,33 +111,46 @@ export class BobDriver {
 
     // Standard 2-argument fill: fill(selector, value)
     const selector = this.datasetManager.interpolate(selectorOrVariable);
-    const resolvedValue = typeof valueOrOptions === "string" 
-      ? this.datasetManager.interpolate(valueOrOptions) 
-      : String(valueOrOptions ?? "");
+    const resolvedValue =
+      typeof valueOrOptions === "string"
+        ? this.datasetManager.interpolate(valueOrOptions)
+        : String(valueOrOptions ?? "");
 
-    const isSensitive = /pass|secret|token|key/i.test(selectorOrVariable) || /pass|secret|token|key/i.test(resolvedValue);
-    console.log(`✍️ [Fill] ${selector} -> "${isSensitive ? '********' : resolvedValue}"`);
+    const isSensitive =
+      /pass|secret|token|key/i.test(selectorOrVariable) ||
+      /pass|secret|token|key/i.test(resolvedValue);
+    console.log(
+      `[Fill] ${selector} -> "${isSensitive ? "********" : resolvedValue}"`,
+    );
     await page.fill(selector, resolvedValue, options);
   }
 
   /**
    * Type text into an element with optional delay
    */
-  public async type(selector: string, text: string, options?: any): Promise<void> {
+  public async type(
+    selector: string,
+    text: string,
+    options?: any,
+  ): Promise<void> {
     const resolvedSelector = this.datasetManager.interpolate(selector);
     const resolvedText = this.datasetManager.interpolate(text);
     const page = await this.getPage();
-    console.log(`⌨️ [Type] ${resolvedSelector}`);
+    console.log(`[Type] ${resolvedSelector}`);
     await page.type(resolvedSelector, resolvedText, options);
   }
 
   /**
    * Press a keyboard key (e.g. 'Enter')
    */
-  public async press(selector: string, key: string, options?: any): Promise<void> {
+  public async press(
+    selector: string,
+    key: string,
+    options?: any,
+  ): Promise<void> {
     const resolvedSelector = this.datasetManager.interpolate(selector);
     const page = await this.getPage();
-    console.log(`🔘 [Press] ${key} on ${resolvedSelector}`);
+    console.log(`[Press] ${key} on ${resolvedSelector}`);
     await page.press(resolvedSelector, key, options);
   }
 
@@ -140,7 +159,10 @@ export class BobDriver {
    */
   public async screenshot(name?: string): Promise<string> {
     const config = getConfig();
-    const storageDir = path.resolve(process.cwd(), config.screenshotsDir || "./screenshots");
+    const storageDir = path.resolve(
+      process.cwd(),
+      config.screenshotsDir || "./screenshots",
+    );
     if (!fs.existsSync(storageDir)) {
       fs.mkdirSync(storageDir, { recursive: true });
     }
@@ -152,15 +174,15 @@ export class BobDriver {
 
     const page = await this.getPage();
     await page.screenshot({ path: fullPath, fullPage: false });
-    
+
     const relativePath = path.relative(process.cwd(), fullPath);
-    console.log(`📸 [Screenshot] Captured: ${relativePath}`);
-    
+    console.log(`[Screenshot] Captured: ${relativePath}`);
+
     this.reportSteps.push({
       title: name || "Screenshot",
-      imagePath: relativePath
+      imagePath: relativePath,
     });
-    
+
     return fullPath;
   }
 
@@ -168,7 +190,7 @@ export class BobDriver {
    * Pause execution for specified milliseconds
    */
   public async sleep(ms: number = 1000): Promise<void> {
-    console.log(`⏳ [Wait] ${ms}ms`);
+    console.log(`[Wait] ${ms}ms`);
     const page = await this.getPage();
     await page.waitForTimeout(ms);
   }
@@ -189,16 +211,24 @@ export class BobDriver {
   /**
    * Assert element is visible
    */
-  public async expectVisible(selector: string, timeout: number = 5000): Promise<boolean> {
+  public async expectVisible(
+    selector: string,
+    timeout: number = 5000,
+  ): Promise<boolean> {
     const resolvedSelector = this.datasetManager.interpolate(selector);
     const page = await this.getPage();
     try {
-      await page.waitForSelector(resolvedSelector, { state: "visible", timeout });
-      console.log(`✅ [Assert] Element is visible: ${resolvedSelector}`);
+      await page.waitForSelector(resolvedSelector, {
+        state: "visible",
+        timeout,
+      });
+      console.log(`[Assert] Element is visible: ${resolvedSelector}`);
       return true;
     } catch (e: any) {
-      console.error(`❌ [Assert Failed] Element NOT visible: ${resolvedSelector}`);
-      throw new Error(`Expected element "${resolvedSelector}" to be visible, but it timed out after ${timeout}ms`);
+      console.error(`[Assert Failed] Element NOT visible: ${resolvedSelector}`);
+      throw new Error(
+        `Expected element "${resolvedSelector}" to be visible, but it timed out after ${timeout}ms`,
+      );
     }
   }
 
@@ -212,7 +242,11 @@ export class BobDriver {
   private generateReport(success: boolean, elapsed: string, errorMsg?: string) {
     if (this.reportSteps.length === 0) return;
 
-    const reportDir = path.resolve(process.cwd(), "reports");
+    const config = getConfig();
+    const reportDir = path.resolve(
+      process.cwd(),
+      config.reportsDir || "./reports",
+    );
     if (!fs.existsSync(reportDir)) {
       fs.mkdirSync(reportDir, { recursive: true });
     }
@@ -222,9 +256,9 @@ export class BobDriver {
     if (scriptPath) {
       const parts = scriptPath.split(path.sep);
       if (parts.length >= 2) {
-         testName = parts[parts.length - 2];
+        testName = parts[parts.length - 2];
       } else {
-         testName = path.basename(scriptPath, ".js");
+        testName = path.basename(scriptPath, ".js");
       }
     }
 
@@ -233,7 +267,7 @@ export class BobDriver {
     const fullPath = path.join(reportDir, filename);
 
     let md = `# Report: ${testName}\n\n`;
-    md += `**Status:** ${success ? '✅ Passed' : '❌ Failed'}\n`;
+    md += `**Status:** ${success ? "Passed" : "Failed"}\n`;
     md += `**Time:** ${elapsed}s\n\n`;
 
     if (errorMsg) {
@@ -247,7 +281,9 @@ export class BobDriver {
     });
 
     fs.writeFileSync(fullPath, md);
-    console.log(`📄 [Report] Generated at: ${path.relative(process.cwd(), fullPath)}`);
+    console.log(
+      `[Report] Generated at: ${path.relative(process.cwd(), fullPath)}`,
+    );
   }
 
   /**
@@ -256,7 +292,7 @@ export class BobDriver {
   public async run(testFn: () => Promise<void> | void): Promise<void> {
     const startTime = Date.now();
     console.log(`\n======================================================`);
-    console.log(`🚀 [BobTester] Starting Test Execution...`);
+    console.log(`[BobTester] Starting Test Execution...`);
     console.log(`======================================================\n`);
 
     this.reportSteps = []; // Reset steps for each run
@@ -270,16 +306,16 @@ export class BobDriver {
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
       this.generateReport(true, elapsed);
-      
+
       console.log(`\n======================================================`);
-      console.log(`🎉 [BobTester] Test Finished Successfully in ${elapsed}s`);
+      console.log(`[BobTester] Test Finished Successfully in ${elapsed}s`);
       console.log(`======================================================\n`);
     } catch (err: any) {
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(2);
       this.generateReport(false, elapsed, err.message || String(err));
-      
+
       console.error(`\n======================================================`);
-      console.error(`💥 [BobTester] Test Execution Failed after ${elapsed}s:`);
+      console.error(`[BobTester] Test Execution Failed after ${elapsed}s:`);
       console.error(err.message || err);
       console.error(`======================================================\n`);
       process.exitCode = 1;
@@ -292,6 +328,6 @@ export class BobDriver {
 // Export singleton instance as 'bob'
 export const bob = new BobDriver();
 export const test = (title: string, fn: () => Promise<void> | void) => {
-  console.log(`\n📝 Running Test: "${title}"`);
+  console.log(`\n[BobTester] Running Test: "${title}"`);
   return bob.run(fn);
 };

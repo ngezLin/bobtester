@@ -1,0 +1,12 @@
+{
+  "browserless": {
+    "apiKey": "",
+    "endpoint": "wss://chrome.browserless.io",
+    "timeout": 30000
+  },
+  "headless": true,
+  "slowMo": 100,
+  "datasets": "./data/datasets.json",
+  "screenshotsDir": "./screenshots",
+  "reportsDir": "./reports"
+}

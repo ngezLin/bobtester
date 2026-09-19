@@ -44,11 +44,17 @@ export class DatasetManager {
         return;
       }
 
-      console.warn(`ℹ️ [Dataset] No dataset file found at ${targetFile}. Using empty dataset.`);
+      console.warn(
+        `[Dataset] No dataset file found at ${targetFile}. Using empty dataset.`,
+      );
       return;
     }
 
-    if (resolvedPath.endsWith(".xlsx") || resolvedPath.endsWith(".xls") || resolvedPath.endsWith(".csv")) {
+    if (
+      resolvedPath.endsWith(".xlsx") ||
+      resolvedPath.endsWith(".xls") ||
+      resolvedPath.endsWith(".csv")
+    ) {
       this.loadExcel(resolvedPath);
     } else {
       this.loadJson(resolvedPath);
@@ -67,9 +73,11 @@ export class DatasetManager {
       } else if (typeof parsed === "object") {
         this.datasets = parsed;
       }
-      console.log(`📊 [Dataset] Loaded ${Object.keys(this.datasets).length} dataset(s) from ${path.basename(filePath)}`);
+      console.log(
+        `[Dataset] Loaded ${Object.keys(this.datasets).length} dataset(s) from ${path.basename(filePath)}`,
+      );
     } catch (e: any) {
-      console.error(`❌ [Dataset] Error parsing JSON dataset: ${e.message}`);
+      console.error(`[Dataset] Error parsing JSON dataset: ${e.message}`);
     }
   }
 
@@ -84,15 +92,19 @@ export class DatasetManager {
         const key = row.name || row.Name || row.id || `row_${idx + 1}`;
         this.datasets[key] = row;
       });
-      console.log(`📊 [Dataset] Loaded ${Object.keys(this.datasets).length} dataset(s) from Excel ${path.basename(filePath)}`);
+      console.log(
+        `[Dataset] Loaded ${Object.keys(this.datasets).length} dataset(s) from Excel ${path.basename(filePath)}`,
+      );
     } catch (e: any) {
-      console.error(`❌ [Dataset] Error parsing Excel dataset: ${e.message}`);
+      console.error(`[Dataset] Error parsing Excel dataset: ${e.message}`);
     }
   }
 
   public useDataset(name: string): DatasetRow {
     if (!this.datasets[name]) {
-      console.warn(`⚠️ [Dataset] Warning: Dataset "${name}" not found. Available datasets: ${Object.keys(this.datasets).join(", ") || "(none)"}`);
+      console.warn(
+        `[Dataset] Warning: Dataset "${name}" not found. Available datasets: ${Object.keys(this.datasets).join(", ") || "(none)"}`,
+      );
       this.activeDatasetName = name;
       this.activeData = {};
       return this.activeData;
@@ -100,7 +112,7 @@ export class DatasetManager {
 
     this.activeDatasetName = name;
     this.activeData = this.datasets[name];
-    console.log(`🏷️ [Dataset] Active dataset set to: "${name}"`);
+    console.log(`[Dataset] Active dataset set to: "${name}"`);
     return this.activeData;
   }
 

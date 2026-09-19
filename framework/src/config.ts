@@ -12,6 +12,7 @@ export interface BobConfig {
   slowMo?: number;
   datasets?: string;
   screenshotsDir?: string;
+  reportsDir?: string;
   baseUrl?: string;
 }
 
@@ -36,19 +37,26 @@ export function loadConfig(projectDir: string = process.cwd()): BobConfig {
       const raw = fs.readFileSync(jsonPath, "utf-8");
       config = JSON.parse(raw);
     } catch (e: any) {
-      console.warn(`⚠️ [bobtester] Warning: Failed to parse bobtester.config.json: ${e.message}`);
+      console.warn(
+        `[bobtester] Warning: Failed to parse bobtester.config.json: ${e.message}`,
+      );
     }
   } else if (fs.existsSync(jsPath)) {
     try {
       config = require(jsPath);
     } catch (e: any) {
-      console.warn(`⚠️ [bobtester] Warning: Failed to load bobtester.config.js: ${e.message}`);
+      console.warn(
+        `[bobtester] Warning: Failed to load bobtester.config.js: ${e.message}`,
+      );
     }
   }
 
   // Environment variable overrides
   const apiKey = process.env.BROWSERLESS_API_KEY || config.browserless?.apiKey;
-  const endpoint = process.env.BROWSERLESS_ENDPOINT || config.browserless?.endpoint || "wss://chrome.browserless.io";
+  const endpoint =
+    process.env.BROWSERLESS_ENDPOINT ||
+    config.browserless?.endpoint ||
+    "wss://chrome.browserless.io";
 
   loadedConfig = {
     browserless: {
@@ -60,6 +68,7 @@ export function loadConfig(projectDir: string = process.cwd()): BobConfig {
     slowMo: config.slowMo !== undefined ? config.slowMo : 100,
     datasets: config.datasets || "./data/datasets.json",
     screenshotsDir: config.screenshotsDir || "./screenshots",
+    reportsDir: config.reportsDir || "./reports",
     baseUrl: config.baseUrl || "",
   };
 

@@ -2,6 +2,7 @@ import { Page } from "playwright";
 import { DatasetRow } from "./dataset";
 export declare class BobDriver {
     private datasetManager;
+    private reportSteps;
     constructor();
     /**
      * Switch the active dataset for variable interpolation (e.g. 'lalala1')
@@ -62,6 +63,7 @@ export declare class BobDriver {
      * Direct access to underlying Playwright Page for advanced scripts
      */
     get page(): Promise<Page>;
+    private generateReport;
     /**
      * Runner entrypoint for standalone test script execution
      */

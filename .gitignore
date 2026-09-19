@@ -5,20 +5,20 @@ projects/screenshots/
 
 # Environment Variables
 .env
-api/.env
-web/.env.local
+gui/server/.env
+gui/app/.env.local
 
 # Frontend Build
-web/.next/
-web/out/
+gui/app/.next/
+gui/app/out/
 
 # Backend Build
-api/dist/
+gui/server/dist/
 
 # Test Results & Storage
-api/storage/screenshots/*.png
-api/test-results/
-api/playwright-report/
+gui/server/storage/screenshots/*.png
+gui/server/test-results/
+gui/server/playwright-report/
 
 # OS Files
 .DS_Store
