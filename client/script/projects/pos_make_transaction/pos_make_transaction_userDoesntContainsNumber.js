@@ -5,7 +5,7 @@ const common = require("../../utils/function/common");
 const transactionMenu = require("../../utils/menu/transactionMenu");
 
 const testName = path.basename(__filename, ".js");
-const testData = require(`../../data/${testName}.json`);
+const testData = require(`../../../data/${testName}.json`);
 
 bob.run(async () => {
   await runActiveRows(testName, testData, async (datasetKey) => {

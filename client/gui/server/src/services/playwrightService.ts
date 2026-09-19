@@ -58,6 +58,7 @@ export class PlaywrightService {
         const storageDir = path.resolve(
           __dirname,
           "../../../..",
+          "report",
           "screenshots",
         );
         if (!fs.existsSync(storageDir)) {

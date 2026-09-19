@@ -7,6 +7,6 @@
   "headless": true,
   "slowMo": 100,
   "datasets": "./data/datasets.json",
-  "screenshotsDir": "./screenshots",
-  "reportsDir": "./reports"
+  "screenshotsDir": "./report/screenshots",
+  "reportsDir": "./report/reports"
 }

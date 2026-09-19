@@ -37,8 +37,8 @@ const corsOptions: cors.CorsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Serve static files from storage/screenshots
-app.use("/storage", express.static(path.join(CLIENT_DIR, "screenshots")));
+// Serve generated screenshots from the client report directory.
+app.use("/storage", express.static(path.join(CLIENT_DIR, "report", "screenshots")));
 
 app.get("/", (_, res) => {
   res.json({
