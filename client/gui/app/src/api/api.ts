@@ -20,6 +20,15 @@ async function request(endpoint: string, options: RequestInit = {}) {
     : null;
 
   if (!response.ok) {
+    if (response.status === 401 && typeof window !== "undefined") {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      if (!window.location.pathname.startsWith("/login")) {
+        window.location.replace("/login");
+      }
+    }
+
     throw new Error(
       data?.message || `Request failed with status ${response.status}`,
     );
