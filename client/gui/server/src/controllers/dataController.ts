@@ -6,7 +6,7 @@ import path from "path";
 // when the client lives in another checkout (for example D:\\projects\\testbob).
 const CLIENT_DIR = process.env.BOBTESTER_CLIENT_DIR
   ? path.resolve(process.env.BOBTESTER_CLIENT_DIR)
-  : path.resolve(__dirname, "../../../../client");
+  : path.resolve(__dirname, "../../../..");
 const DATA_DIR = path.join(CLIENT_DIR, "data");
 
 function getDataFilePath(filename: string): string {
@@ -73,12 +73,10 @@ export class DataController {
           .json({ success: false, message: "File not found" });
       }
       if (fs.existsSync(targetPath)) {
-        return res
-          .status(409)
-          .json({
-            success: false,
-            message: "A file with that name already exists",
-          });
+        return res.status(409).json({
+          success: false,
+          message: "A file with that name already exists",
+        });
       }
 
       fs.renameSync(sourcePath, targetPath);

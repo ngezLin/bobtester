@@ -55,7 +55,11 @@ export class PlaywrightService {
 
       // Best effort local storage save for local dev inspection
       try {
-        const storageDir = path.join(process.cwd(), "storage", "screenshots");
+        const storageDir = path.resolve(
+          __dirname,
+          "../../../..",
+          "screenshots",
+        );
         if (!fs.existsSync(storageDir)) {
           fs.mkdirSync(storageDir, { recursive: true });
         }
@@ -158,12 +162,15 @@ export class PlaywrightService {
       p.on("dialog", async (dialog: any) => {
         const message = dialog.message();
         const dialogType = dialog.type(); // 'alert', 'confirm', 'prompt', 'beforeunload'
-        
-        addLog(`[Dialog Intercepted] Type: "${dialogType}", Message: "${message}"`);
-        
+
+        addLog(
+          `[Dialog Intercepted] Type: "${dialogType}", Message: "${message}"`,
+        );
+
         // Flag as XSS if it's an 'alert' or 'prompt', while accepting 'confirm' or 'beforeunload'
-        const isStandardConfirm = dialogType === "confirm" || dialogType === "beforeunload";
-        
+        const isStandardConfirm =
+          dialogType === "confirm" || dialogType === "beforeunload";
+
         if (!isStandardConfirm) {
           addLog(
             `Security Alert: Unexpected alert dialog detected! Content: "${message}"`,
@@ -177,7 +184,9 @@ export class PlaywrightService {
           });
           await dialog.dismiss();
         } else {
-          addLog(`Accepting confirmation dialog to allow form submission/navigation to proceed.`);
+          addLog(
+            `Accepting confirmation dialog to allow form submission/navigation to proceed.`,
+          );
           dialogHandled = true; // signal that a nav-triggering dialog was accepted
           await dialog.accept();
         }
@@ -241,11 +250,19 @@ export class PlaywrightService {
 
         // Parameter substitution: replace [varName] with assetData.varName
         let finalValue = value;
-        if (value && typeof value === "string" && value.includes("[") && value.includes("]")) {
+        if (
+          value &&
+          typeof value === "string" &&
+          value.includes("[") &&
+          value.includes("]")
+        ) {
           const varName = value.match(/\[(.*?)\]/)?.[1];
           if (varName) {
             if (assetData && assetData[varName] !== undefined) {
-              finalValue = value.replace(`[${varName}]`, String(assetData[varName]));
+              finalValue = value.replace(
+                `[${varName}]`,
+                String(assetData[varName]),
+              );
               addLog(`Substituted [${varName}] with asset value`);
             } else {
               addLog(
@@ -270,7 +287,10 @@ export class PlaywrightService {
               try {
                 await p.locator(selector).fill(finalValue || "");
               } catch (fillErr: any) {
-                if (fillErr.message && fillErr.message.includes("strict mode violation")) {
+                if (
+                  fillErr.message &&
+                  fillErr.message.includes("strict mode violation")
+                ) {
                   addLog(
                     `⚠️ Multiple elements matched ${selector}. Attempting to fill the active/last visible element...`,
                     "warn",
@@ -297,7 +317,10 @@ export class PlaywrightService {
               try {
                 await p.locator(selector).click({ timeout: 15000 });
               } catch (clickErr: any) {
-                if (clickErr.message && clickErr.message.includes("strict mode violation")) {
+                if (
+                  clickErr.message &&
+                  clickErr.message.includes("strict mode violation")
+                ) {
                   addLog(
                     `⚠️ Multiple elements matched ${selector}. Attempting to click the active/last visible element...`,
                     "warn",
@@ -323,14 +346,24 @@ export class PlaywrightService {
               if (dialogHandled) {
                 dialogHandled = false;
                 try {
-                  await p.waitForLoadState("domcontentloaded", { timeout: 10000 });
+                  await p.waitForLoadState("domcontentloaded", {
+                    timeout: 10000,
+                  });
                   addLog(`Page settled after dialog-triggered navigation`);
                 } catch (_) {
                   // Page might not navigate — that's fine, continue
                 }
-              } else if (selector && (selector.includes("button") || selector.includes("submit") || selector.includes("form") || selector.startsWith("a"))) {
+              } else if (
+                selector &&
+                (selector.includes("button") ||
+                  selector.includes("submit") ||
+                  selector.includes("form") ||
+                  selector.startsWith("a"))
+              ) {
                 try {
-                  await p.waitForLoadState("domcontentloaded", { timeout: 3000 });
+                  await p.waitForLoadState("domcontentloaded", {
+                    timeout: 3000,
+                  });
                 } catch (_) {
                   // Continue if no navigation occurs
                 }
@@ -338,7 +371,11 @@ export class PlaywrightService {
               break;
             case "screenshot": {
               addLog(`Capturing step screenshot...`);
-              const scrPath = await this.takeScreenshot(p, testRunId, `step-${currentStepIndex}`);
+              const scrPath = await this.takeScreenshot(
+                p,
+                testRunId,
+                `step-${currentStepIndex}`,
+              );
               if (scrPath) {
                 logs.push({
                   message: scrPath,
@@ -358,30 +395,47 @@ export class PlaywrightService {
             }
             case "wait-visible":
               addLog(`Waiting for ${selector} to become visible`);
-              await p.locator(selector).waitFor({ state: "visible", timeout: 15000 });
+              await p
+                .locator(selector)
+                .waitFor({ state: "visible", timeout: 15000 });
               break;
             case "assert-hidden":
               addLog(`Asserting element hidden: ${selector}`);
-              await p.locator(selector).waitFor({ state: "hidden", timeout: 5000 }).catch(() => {
-                throw new Error(`Assertion failed: Element "${selector}" is not hidden`);
-              });
+              await p
+                .locator(selector)
+                .waitFor({ state: "hidden", timeout: 5000 })
+                .catch(() => {
+                  throw new Error(
+                    `Assertion failed: Element "${selector}" is not hidden`,
+                  );
+                });
               addLog(`✅ Element assertion passed: "${selector}" is hidden`);
               break;
             case "assert-contains": {
-              addLog(`Asserting element "${selector}" contains text: "${finalValue}"`);
-              await p.locator(selector).waitFor({ state: "visible", timeout: 5000 });
+              addLog(
+                `Asserting element "${selector}" contains text: "${finalValue}"`,
+              );
+              await p
+                .locator(selector)
+                .waitFor({ state: "visible", timeout: 5000 });
               const content = await p.locator(selector).textContent();
               if (!content || !content.includes(finalValue)) {
-                throw new Error(`Assertion failed: Element "${selector}" does not contain text "${finalValue}"`);
+                throw new Error(
+                  `Assertion failed: Element "${selector}" does not contain text "${finalValue}"`,
+                );
               }
-              addLog(`✅ Element assertion passed: "${selector}" contains text "${finalValue}"`);
+              addLog(
+                `✅ Element assertion passed: "${selector}" contains text "${finalValue}"`,
+              );
               break;
             }
             case "assert-title": {
               addLog(`Asserting page title matches: "${finalValue}"`);
               const currentTitle = await p.title();
               if (currentTitle !== finalValue) {
-                throw new Error(`Assertion failed: Expected title to be "${finalValue}" but got "${currentTitle}"`);
+                throw new Error(
+                  `Assertion failed: Expected title to be "${finalValue}" but got "${currentTitle}"`,
+                );
               }
               addLog(`✅ Title assertion passed: matches "${finalValue}"`);
               break;
@@ -392,21 +446,29 @@ export class PlaywrightService {
               // Determine assert target from selector or value
               const assertTarget = selector || finalValue || "";
               if (assertTarget.startsWith("url:")) {
-                const expectedFragment = assertTarget.replace("url:", "").trim();
+                const expectedFragment = assertTarget
+                  .replace("url:", "")
+                  .trim();
                 const currentUrl = p.url();
                 if (!currentUrl.includes(expectedFragment)) {
                   throw new Error(
                     `Assertion failed: URL should contain "${expectedFragment}" but got "${currentUrl}"`,
                   );
                 }
-                addLog(`✅ URL assertion passed: contains "${expectedFragment}"`);
+                addLog(
+                  `✅ URL assertion passed: contains "${expectedFragment}"`,
+                );
               } else if (assertTarget.startsWith("text:")) {
                 const textToFind = assertTarget.replace("text:", "").trim();
-                const parts = textToFind.split("|").map((t: string) => t.trim());
+                const parts = textToFind
+                  .split("|")
+                  .map((t: string) => t.trim());
                 let found = false;
                 for (const part of parts) {
                   try {
-                    await p.getByText(part, { exact: false }).waitFor({ state: "visible", timeout: 5000 });
+                    await p
+                      .getByText(part, { exact: false })
+                      .waitFor({ state: "visible", timeout: 5000 });
                     found = true;
                     addLog(`✅ Text assertion passed: "${part}" is visible`);
                     break;
@@ -421,12 +483,17 @@ export class PlaywrightService {
                 }
               } else if (assertTarget) {
                 // Locator-based visibility assertion
-                await p.locator(assertTarget).waitFor({ state: "visible", timeout: 5000 }).catch(() => {
-                  throw new Error(
-                    `Assertion failed: Element "${assertTarget}" is not visible`,
-                  );
-                });
-                addLog(`✅ Element assertion passed: "${assertTarget}" is visible`);
+                await p
+                  .locator(assertTarget)
+                  .waitFor({ state: "visible", timeout: 5000 })
+                  .catch(() => {
+                    throw new Error(
+                      `Assertion failed: Element "${assertTarget}" is not visible`,
+                    );
+                  });
+                addLog(
+                  `✅ Element assertion passed: "${assertTarget}" is visible`,
+                );
               }
               break;
             }

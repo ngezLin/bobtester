@@ -3,8 +3,8 @@
   "private": true,
   "workspaces": [
     "framework",
-    "gui/app",
-    "gui/server"
+    "client/gui/app",
+    "client/gui/server"
   ],
   "scripts": {
     "build": "npm run build --workspaces",
@@ -12,7 +12,8 @@
     "gui:dev": "npm run dev --workspace=@bobtester/gui-app",
     "gui:server": "npm run dev --workspace=@bobtester/gui-server",
     "gui:build": "npm run build --workspace=@bobtester/gui-app",
-    "gui:server:build": "npm run build --workspace=@bobtester/gui-server"
+    "gui:server:build": "npm run build --workspace=@bobtester/gui-server",
+    "client:dev": "npm run dev --prefix client"
   },
   "dependencies": {
     "@types/ws": "^8.18.1",

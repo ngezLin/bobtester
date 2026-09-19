@@ -8,6 +8,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const CLIENT_DIR = path.resolve(__dirname, "../../../..");
 
 const allowedOrigins = [
   "http://localhost:3000",
@@ -37,7 +38,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Serve static files from storage/screenshots
-app.use("/storage", express.static(path.join(process.cwd(), "storage")));
+app.use("/storage", express.static(path.join(CLIENT_DIR, "screenshots")));
 
 app.get("/", (_, res) => {
   res.json({

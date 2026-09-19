@@ -1,6 +1,10 @@
 {
   "name": "testbob",
   "version": "1.0.0",
+  "scripts": {
+    "dev": "node dev.js",
+    "gui:build": "npm run build --prefix gui/app && npm run build --prefix gui/server"
+  },
   "dependencies": {
     "bobtester": "file:../framework"
   }
