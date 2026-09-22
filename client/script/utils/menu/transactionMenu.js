@@ -1,38 +1,34 @@
-const { bob } = require("bobtester");
+const { captureScreenshot } = require("../playwright");
 
 class TransactionMenu {
-  async buySomething(checkoutDatasetName = "default_checkout") {
-    // Switch to the specific checkout data we want to test
-    bob.useDataset(checkoutDatasetName);
+  async buySomething(page, data) {
+    await page.click('[data-test="add-to-cart-sauce-labs-backpack"]');
+    await captureScreenshot(page, "added_to_cart");
 
-    // 2. Add an item to the cart
-    await bob.click('[data-test="add-to-cart-sauce-labs-backpack"]');
-    await bob.screenshot("added_to_cart");
-    
     // 3. Go to Cart
-    await bob.click(".shopping_cart_link");
-    await bob.expectVisible(".cart_list");
-    await bob.screenshot("cart_page");
-    
+    await page.click(".shopping_cart_link");
+    await page.locator(".cart_list").waitFor({ state: "visible" });
+    await captureScreenshot(page, "cart_page");
+
     // 4. Proceed to Checkout
-    await bob.click('[data-test="checkout"]');
-    await bob.expectVisible("#first-name");
-    
+    await page.click('[data-test="checkout"]');
+    await page.locator("#first-name").waitFor({ state: "visible" });
+
     // 5. Fill Checkout Information
-    await bob.fill("#first-name", "[firstName]");
-    await bob.fill("#last-name", "[lastName]");
-    await bob.fill("#postal-code", "[postalCode]");
-    await bob.screenshot("checkout_info");
-    
+    await page.fill("#first-name", data.firstName);
+    await page.fill("#last-name", data.lastName);
+    await page.fill("#postal-code", data.postalCode);
+    await captureScreenshot(page, "checkout_info");
+
     // 6. Continue to Overview
-    await bob.click('[data-test="continue"]');
-    await bob.expectVisible(".summary_info");
-    await bob.screenshot("checkout_overview");
-    
+    await page.click('[data-test="continue"]');
+    await page.locator(".summary_info").waitFor({ state: "visible" });
+    await captureScreenshot(page, "checkout_overview");
+
     // 7. Finish the Transaction
-    await bob.click('[data-test="finish"]');
-    await bob.expectVisible(".complete-header");
-    await bob.screenshot("transaction_complete");
+    await page.click('[data-test="finish"]');
+    await page.locator(".complete-header").waitFor({ state: "visible" });
+    await captureScreenshot(page, "transaction_complete");
   }
 }
 

@@ -1,5 +1,5 @@
-const { bob } = require("bobtester");
 const path = require("path");
+const { runTest } = require("../../utils/playwright");
 const { runActiveRows } = require("../../utils/function/runner");
 const common = require("../../utils/function/common");
 const transactionMenu = require("../../utils/menu/transactionMenu");
@@ -7,10 +7,10 @@ const transactionMenu = require("../../utils/menu/transactionMenu");
 const testName = path.basename(__filename, ".js");
 const testData = require(`../../../data/${testName}.json`);
 
-bob.run(async () => {
-  await runActiveRows(testName, testData, async (datasetKey) => {
-    await common.login();
-    await transactionMenu.buySomething(datasetKey);
-    await common.logout();
+runTest(testName, async (page) => {
+  await runActiveRows(testName, testData, async (rowData) => {
+    await common.login(page);
+    await transactionMenu.buySomething(page, rowData);
+    await common.logout(page);
   });
 });

@@ -1,9 +1,6 @@
-const { bob } = require("bobtester");
-const path = require("path");
-
 /**
  * Loops through all rows in a test's JSON data file,
- * skips "Inactive" rows, injects active rows into the framework,
+ * skips "Inactive" rows and passes active row data to the test function,
  * and calls your test function for each active row.
  *
  * @param {string} testName  - The test file name (without .js), used as the data key prefix
@@ -15,12 +12,7 @@ async function runActiveRows(testName, testData, testFn) {
     if (rowData.status === "Active") {
       console.log(`\n[Runner] ${testName} — Row ${rowId}`);
 
-      // Inject this row into the framework's dataset memory with a unique key
-      const uniqueDatasetKey = `${testName}_row${rowId}`;
-      bob.datasetManager.getAllDatasets()[uniqueDatasetKey] = rowData;
-
-      // Run the caller's test logic for this row
-      await testFn(uniqueDatasetKey);
+      await testFn(rowData, rowId);
     } else {
       console.log(`\n[Runner] Skipping inactive row: ${rowId}`);
     }
